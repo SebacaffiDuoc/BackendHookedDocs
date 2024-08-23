@@ -1,4 +1,4 @@
-# Fishing Store Backend
+# Backend Hooked Docs
 
 ## Descripción
 
@@ -13,24 +13,25 @@ Este proyecto es el backend para la tienda de artículos de pesca, diseñado par
 - **Power BI**: Herramienta de inteligencia de negocios para la visualización de datos y generación de informes.
 
 ## Estructura del Proyecto
-
-fishing-store-backend/
+```
+BackendHookedDocs/
 │
 ├── src/
-│ ├── api/ # Controladores y rutas de FastAPI
-│ │ └── ocr_api.py
-│ ├── core/ # Configuraciones y dependencias principales
-│ │ └── database.py
-│ ├── models/ # Definición de modelos de datos
-│ │ └── user.py
-│ ├── services/ # Lógica de negocio, incluyendo OCR y ETL
-│ ├── ocr/ # Código relacionado con la extracción de texto OCR
-│ │ └── ocr_reader.py
-│ └── main.py # Archivo principal para iniciar la aplicación
+│   ├── api/                # Controladores y rutas de FastAPI
+│   │   └── ocr_api.py
+│   ├── core/               # Configuraciones y dependencias principales
+│   │   └── database.py
+│   ├── models/             # Definición de modelos de datos
+│   │   └── user.py
+│   ├── services/           # Lógica de negocio, incluyendo OCR y ETL
+│   ├── ocr/                # Código relacionado con la extracción de texto OCR
+│   │   └── ocr_reader.py
+│   └── main.py             # Archivo principal para iniciar la aplicación
 │
-├── venv/ # Entorno virtual de Python
-├── .gitignore # Archivos y carpetas ignorados por Git
-└── requirements.txt # Dependencias del proyecto
+├── venv/                   # Entorno virtual de Python
+├── .gitignore              # Archivos y carpetas ignorados por Git
+└── requirements.txt        # Dependencias del proyecto
+```
 
 
 ## Instalación
@@ -44,4 +45,5 @@ fishing-store-backend/
 
 1. Clona el repositorio:
    git clone https://github.com/SebacaffiDuoc/BackendHookedDocs.git
-   cd BackendHookedDocs
+2. Moverse al Repo:cd BackendHookedDocs
+3. Crear Virtual Enviroment e instalar archivo requirements.txt
