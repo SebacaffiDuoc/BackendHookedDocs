@@ -1,2 +1,6 @@
 fastapi[all]
 uvicorn
+pytesseract
+Pillow
+pandas
+pdf2image

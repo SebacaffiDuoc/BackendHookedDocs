@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Docs e IMG
+/docs
+/output_images
+
 # Distribution / packaging
 .Python
 env/
