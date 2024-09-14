@@ -44,16 +44,26 @@ def transform(extracted_text):
     - Un diccionario con los datos estructurados de la factura.
     """
     transformed_text = extracted_text.upper()
-    transformed_text = transformed_text.replace('Á', 'A')
-    transformed_text = transformed_text.replace('É', 'E')
-    transformed_text = transformed_text.replace('Í', 'I')
-    transformed_text = transformed_text.replace('Ó', 'O')
-    transformed_text = transformed_text.replace('Ú', 'U')
-    transformed_text = transformed_text.replace('N*', 'Nº')
-    transformed_text = transformed_text.replace('N?', 'Nº')
-    transformed_text = transformed_text.replace('S.I.1', 'S.I.I.')
-    transformed_text = transformed_text.replace('OPROFISHING.CL', '@PROFISHING.CL')
-    transformed_text = transformed_text.replace('#$', '#')
+
+    # Diccionario de reemplazos para normalizar el texto
+    replacements = {
+        'Á': 'A', 
+        'É': 'E', 
+        'Í': 'I', 
+        'Ó': 'O', 
+        'Ú': 'U',
+        'N*': 'Nº', 
+        'N?': 'Nº', 
+        'S.I.1': 
+        'S.I.I.',
+        'OPROFISHING.CL': 
+        '@PROFISHING.CL', 
+        '#$': '#'
+    }
+
+    # Aplica los reemplazos al texto
+    for old, new in replacements.items():
+        transformed_text = transformed_text.replace(old, new)
 
     # Inicializa el diccionario de datos para almacenar los campos extraídos
     data = {
