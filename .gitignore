@@ -6,9 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
-# Docs e IMG
-/docs
-/output_images
+# Docs e IMG(descomentar en la parte final de las pruebas)
+#/output_images
+#*.pdf
+#*.xlsx
+#*.xls
+#*.png
 
 # Distribution / packaging
 .Python

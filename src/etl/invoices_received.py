@@ -200,7 +200,7 @@ def main():
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    path_invoices = "docs/invoce/33-8510.pdf"  # Ruta del archivo PDF de la factura
+    path_invoices = "docs/invoices_received/33-8510.pdf"  # Ruta del archivo PDF de la factura
      
     # Etapa de extracción: convierte el PDF a texto usando OCR
     extracted_text = extract(path_invoices)
