@@ -5,12 +5,12 @@ import os
 import sys
 from pdf2image import convert_from_path
 
-#route = os.path.abspath(__file__)
-#index_route = route.find("BackendHookedDocs")
-#local_path = route[:index_route + len("BackendHookedDocs")]
-#global_route = os.path.join(local_path, "src")
+route = os.path.abspath(__file__)
+index_route = route.find("BackendHookedDocs")
+local_path = route[:index_route + len("BackendHookedDocs")]
+global_route = os.path.join(local_path, "src")
 
-#sys.path.append(global_route)
+sys.path.append(global_route)
 
 def extract(path_invoices):
     """
@@ -288,7 +288,7 @@ def main():
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    path_invoices = "/home/malcom/Documentos/BackendHookedDocs/docs/invoice/FACTURA451.pdf"  # Ruta del archivo PDF de la factura
+    path_invoices = "docs/electronic_tickets/FACTURA451.pdf"  # Ruta del archivo PDF de la factura
      
     # Etapa de extracción: convierte el PDF a texto usando OCR
     extracted_text = extract(path_invoices)
