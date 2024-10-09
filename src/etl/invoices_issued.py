@@ -272,7 +272,7 @@ def transform(extracted_text):
 
     return data
 
-    def load(data, str_conn):
+def load(data, str_conn):
     """
     Carga los datos procesados en una base de datos (actualmente solo muestra los datos).
     
