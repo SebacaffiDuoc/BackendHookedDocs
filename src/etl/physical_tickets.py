@@ -39,18 +39,14 @@ def load(data, str_conn):
     """
     print(f"PLACEHOLDER: data cargada")
 
-def main():
+def main(pyshical_tickets_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    tickets_path = 'docs/physical_tickets/'
 
-    data = extract(tickets_path)
+    data = extract(pyshical_tickets_path)
 
     data_final = transform(data)
 
     load(data_final, str_conn)
-    
-if __name__ == "__main__":
-    main()

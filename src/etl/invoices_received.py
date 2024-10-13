@@ -196,16 +196,14 @@ def load(data, str_conn):
     """
     print(f"PLACEHOLDER: data cargada")
 
-def main():
+def main(invoices_received_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     #str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    #path_invoices = "docs/invoices_received/33-8510.pdf"  # Ruta del archivo PDF de la factura
-
-    path_invoices = "/home/malcom/Documentos/BackendHookedDocs/docs/invoices_received/33-8510.pdf"
+    
     # Etapa de extracción: convierte el PDF a texto usando OCR
-    extracted_text = extract(path_invoices)
+    extracted_text = extract(invoices_received_path)
     
     # Etapa de transformación: normaliza el texto y extrae los datos clave
     data = transform(extracted_text)
@@ -216,6 +214,3 @@ def main():
     create_invoice(data,'invoices_received')
     select = read_invoices('invoices_received')
     print(select)
-
-if __name__ == "__main__":
-    main()
