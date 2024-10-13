@@ -4,6 +4,7 @@ import re
 import os
 import sys
 from pdf2image import convert_from_path
+from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
 
 route = os.path.abspath(__file__)
 index_route = route.find("BackendHookedDocs")
@@ -22,13 +23,22 @@ def extract(path_invoices):
     Retorna:
     - El texto extraído del PDF.
     """
-    images = convert_from_path(path_invoices)  # Convierte las páginas del PDF en imágenes.
+    if not os.path.exists(path_invoices):
+        raise FileNotFoundError(f"El archivo no existe: {path_invoices}")
+    
+    # Convierte las páginas del PDF en imágenes.
+    try:
+        images = convert_from_path(path_invoices)  # Convierte las páginas del PDF en imágenes.
 
-    extracted_text = ""
-    for img in images:
+        extracted_text = ""
+        for img in images:
         # Aplica OCR a cada imagen y concatena el texto extraído.
-        text = pytesseract.image_to_string(img, lang='spa')
-        extracted_text += text + "\n"
+            text = pytesseract.image_to_string(img, lang='spa')
+            extracted_text += text + "\n"
+
+    except Exception as e:
+        print(f"Error al procesar el PDF: {e}")
+        return None
 
     return extracted_text
 
@@ -266,13 +276,13 @@ def transform(extracted_text):
             data['buyer']['commune'] = buyer_comuna_match.group(1).strip()
 
 
-    print(transformed_text)
+    #print(transformed_text)
     
-    print(json.dumps(data, indent=4, ensure_ascii=False))
+    #print(json.dumps(data, indent=4, ensure_ascii=False))
 
     return data
 
-def load(data, str_conn):
+def load(data):
     """
     Carga los datos procesados en una base de datos (actualmente solo muestra los datos).
     
@@ -280,7 +290,8 @@ def load(data, str_conn):
     - data: El diccionario con los datos procesados de la factura.
     - str_conn: La cadena de conexión a la base de datos (actualmente no utilizada).
     """
-    print(f"PLACEHOLDER: data cargada")
+    
+    #print(f"PLACEHOLDER: data cargada")
 
 
 def main():
@@ -288,8 +299,11 @@ def main():
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    path_invoices = "docs/electronic_tickets/FACTURA451.pdf"  # Ruta del archivo PDF de la factura
-     
+    #path_invoices = "docs/invoices_issued/FACTURA451.pdf"  # Ruta del archivo PDF de la factura
+
+    #efecto prueba (MALCOM) no me funciona path dinamico
+    path_invoices = "/home/malcom/Documentos/BackendHookedDocs/docs/invoices_issued/FACTURA451.pdf"
+
     # Etapa de extracción: convierte el PDF a texto usando OCR
     extracted_text = extract(path_invoices)
     
@@ -297,7 +311,10 @@ def main():
     data = transform(extracted_text)
     
     # Etapa de carga: inserta o muestra los datos en la base de datos
-    load(data, str_conn)
+    delete_invoice(2,'invoices_issued')
+    create_invoice(data,'invoices_issued')
+    select = read_invoices('invoices_issued')
+    print(select)
 
 if __name__ == "__main__":
     main()

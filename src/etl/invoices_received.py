@@ -4,6 +4,7 @@ import re
 import os
 import sys
 from pdf2image import convert_from_path
+from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
 
 # Configuración de rutas para agregar el directorio src al path de Python
 route = os.path.abspath(__file__)
@@ -179,9 +180,9 @@ def transform(extracted_text):
     if total_match:
         data["total"] = float(total_match.group(1).replace('.', '').replace(',', '.'))
 
-    print(transformed_text)
+    #print(transformed_text)
     
-    print(json.dumps(data, indent=4, ensure_ascii=False))
+    #print(json.dumps(data, indent=4, ensure_ascii=False))
 
     return data
 
@@ -199,9 +200,10 @@ def main():
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
-    str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    path_invoices = "docs/invoices_received/33-8510.pdf"  # Ruta del archivo PDF de la factura
-     
+    #str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
+    #path_invoices = "docs/invoices_received/33-8510.pdf"  # Ruta del archivo PDF de la factura
+
+    path_invoices = "/home/malcom/Documentos/BackendHookedDocs/docs/invoices_received/33-8510.pdf"
     # Etapa de extracción: convierte el PDF a texto usando OCR
     extracted_text = extract(path_invoices)
     
@@ -209,7 +211,11 @@ def main():
     data = transform(extracted_text)
     
     # Etapa de carga: inserta o muestra los datos en la base de datos
-    load(data, str_conn)
+    # Etapa de carga: inserta o muestra los datos en la base de datos
+    #delete_invoice(2,'invoices_received')
+    create_invoice(data,'invoices_received')
+    select = read_invoices('invoices_received')
+    print(select)
 
 if __name__ == "__main__":
     main()
