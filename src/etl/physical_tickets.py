@@ -66,6 +66,7 @@ def load(data, str_conn):
     - str_conn: La cadena de conexión a la base de datos (actualmente no utilizada).
     """
     print(f"PLACEHOLDER: data cargada")
+    print(data.head())
 
 def move_to_processed(file_path, base_path):
     """
