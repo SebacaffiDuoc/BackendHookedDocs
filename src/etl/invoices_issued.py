@@ -3,6 +3,7 @@ import json
 import re
 import os
 import sys
+import shutil
 from pdf2image import convert_from_path
 from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
 
@@ -15,32 +16,33 @@ sys.path.append(global_route)
 
 def extract(path_invoices):
     """
-    Extrae el texto de una factura en formato PDF utilizando OCR.
+    Extrae el texto de facturas en formato PDF utilizando OCR.
     
     Parámetros:
-    - path_invoices: Ruta del archivo PDF de la factura.
-
-    Retorna:
-    - El texto extraído del PDF.
-    """
-    if not os.path.exists(path_invoices):
-        raise FileNotFoundError(f"El archivo no existe: {path_invoices}")
+    - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
     
-    # Convierte las páginas del PDF en imágenes.
-    try:
-        images = convert_from_path(path_invoices)  # Convierte las páginas del PDF en imágenes.
-
-        extracted_text = ""
-        for img in images:
-        # Aplica OCR a cada imagen y concatena el texto extraído.
-            text = pytesseract.image_to_string(img, lang='spa')
-            extracted_text += text + "\n"
-
-    except Exception as e:
-        print(f"Error al procesar el PDF: {e}")
-        return None
-
-    return extracted_text
+    Retorna:
+    - El texto extraído del archivo.
+    """
+    for file in os.listdir(path_invoices):
+        if file.endswith(".pdf"):
+            file_path = os.path.join(path_invoices, file)
+            try:
+                images = convert_from_path(file_path)  # Convierte las páginas del PDF en imágenes.
+                extracted_text = ""
+                for img in images:
+                    # Aplica OCR a cada imagen y concatena el texto extraído.
+                    text = pytesseract.image_to_string(img, lang='spa')
+                    extracted_text += text + "\n"
+                
+                # Procesar el archivo PDF
+                data = transform(extracted_text)
+                load(data)
+                
+                # Mover archivo a la carpeta "PROCESADOS" después de procesarlo
+                move_to_processed(file_path, path_invoices)
+            except Exception as e:
+                print(f"Error al procesar el archivo {file}: {e}")
 
 def transform(extracted_text):
     """
@@ -64,10 +66,8 @@ def transform(extracted_text):
         'Ú': 'U',
         'N*': 'Nº', 
         'N?': 'Nº', 
-        'S.1.1': 
-        'S.I.I.',
-        'S.I.1': 
-        'S.I.I',
+        'S.1.1': 'S.I.I.',
+        'S.I.1': 'S.I.I',
         '#$': '#',
         'OGMAIL': '@GMAIL',
         'AM MONTO NETO': 'MONTO NETO',
@@ -160,7 +160,6 @@ def transform(extracted_text):
         phone = ''.join(re.findall(r'\d+', phone))
         data["issuer"]["phone"] = phone
 
-
     # Extrae el tipo de factura
     invoice_type_match = re.search(r'\n(FACTURA ELECTRONICA)\n', transformed_text)
     if invoice_type_match:
@@ -168,18 +167,15 @@ def transform(extracted_text):
 
     # Extrae el número de factura basado en el contexto
     invoice_number = None
-    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*(.*?)\s*S\.I\.I\.\. - VALPARAISO', transformed_text, re.DOTALL)
+    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*(.*?)\s*S\.I\.I\.\s*-\s*VALPARAISO', transformed_text, re.DOTALL)
     if invoice_number_match:
         between_text = invoice_number_match.group(1).strip()
-        # Busca el primer número en el texto intermedio
         num_match = re.search(r'N[º2]?\s*(\d+)', between_text)
         if num_match:
             invoice_number = num_match.group(1).replace(' ', '')
-            # Opcionalmente, corrige 'N2' a 'Nº' si es necesario
             invoice_number = invoice_number.replace('N2', 'Nº')
             data["issuer"]["invoice_number"] = invoice_number
         else:
-            # Si no se encuentra, intenta extraer cualquier número
             num_match = re.search(r'(\d+)', between_text)
             if num_match:
                 data["issuer"]["invoice_number"] = num_match.group(1)
@@ -187,13 +183,12 @@ def transform(extracted_text):
     # Extrae fecha de emision
     issue_date_match = re.search(r'FECHA EMISION:\s*([0-9]{1,2}) DE (\w+) DEL (\d{4})', transformed_text)
     if issue_date_match:
-        day = issue_date_match.group(1).zfill(2)  # Asegura que el día tenga dos dígitos
+        day = issue_date_match.group(1).zfill(2)
         month_name = issue_date_match.group(2).upper()
         year = issue_date_match.group(3)
-        month = months.get(month_name, '00')  # Obtiene el número del mes; '00' si no se encuentra
+        month = months.get(month_name, '00')
         issue_date_formatted = f"{day}{month}{year}"
-        data["issuer"]["issue_date"] = issue_date_formatted  # Almacena en 'data' principal
-
+        data["issuer"]["issue_date"] = issue_date_formatted
 
     # Extrae forma de pago
     pay_method_match = re.search(r'FORMA DE PAGO:\s*(.+)', transformed_text)
@@ -210,7 +205,6 @@ def transform(extracted_text):
         items_text = items_section_match.group(1).strip()
         item_lines = items_text.splitlines()
         for line in item_lines:
-            # Extrae los detalles de cada ítem usando una expresión regular
             line = line.strip()
             if not line:
                 continue
@@ -218,7 +212,6 @@ def transform(extracted_text):
             item_match = re.match(line_regex, line)
 
             if item_match:
-                 # Agrega el ítem al diccionario de datos
                 item = {
                     'description': item_match.group('description').strip(),
                     'quantity': item_match.group('quantity').strip(),
@@ -242,7 +235,7 @@ def transform(extracted_text):
     if total_match:
         data['total'] = parse_float(total_match.group(1))
 
-     # Extrae datos del comprador
+    # Extrae datos del comprador
     buyer_section_match = re.search(
         r'SEÑOR\(ES\):\s*(.*?)\n(?:CONTACTO:|TIPO DE COMPRA:|CODIGO DESCRIPCION)', 
         transformed_text, 
@@ -275,11 +268,6 @@ def transform(extracted_text):
         if buyer_comuna_match:
             data['buyer']['commune'] = buyer_comuna_match.group(1).strip()
 
-
-    #print(transformed_text)
-    
-    #print(json.dumps(data, indent=4, ensure_ascii=False))
-
     return data
 
 def load(data):
@@ -288,27 +276,27 @@ def load(data):
     
     Parámetros:
     - data: El diccionario con los datos procesados de la factura.
-    - str_conn: La cadena de conexión a la base de datos (actualmente no utilizada).
     """
-    
-    #print(f"PLACEHOLDER: data cargada")
+    #create_invoice(data, 'invoices_issued')
+    #select = read_invoices('invoices_issued')
+    #print(select)
+    print(data)
 
+def move_to_processed(file_path, path_invoices):
+    """
+    Mueve un archivo procesado a la carpeta "PROCESADOS".
+    
+    Parámetros:
+    - file_path: Ruta del archivo procesado.
+    - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
+    """
+    processed_folder = os.path.join(path_invoices, "PROCESADOS")
+    if not os.path.exists(processed_folder):
+        os.makedirs(processed_folder)
+    shutil.move(file_path, os.path.join(processed_folder, os.path.basename(file_path)))
 
 def main(invoices_issued_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
-    str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    #path_invoices = "docs/invoices_issued/FACTURA451.pdf"  # Ruta del archivo PDF de la factura
-
-    # Etapa de extracción: convierte el PDF a texto usando OCR
-    extracted_text = extract(invoices_issued_path)
-    
-    # Etapa de transformación: normaliza el texto y extrae los datos clave
-    data = transform(extracted_text)
-    
-    # Etapa de carga: inserta o muestra los datos en la base de datos
-    delete_invoice(2,'invoices_issued')
-    create_invoice(data,'invoices_issued')
-    select = read_invoices('invoices_issued')
-    print(select)
+    extract(invoices_issued_path)

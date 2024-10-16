@@ -6,3 +6,4 @@ pandas
 pdf2image
 openpyxl
 xlrd
+oracledb

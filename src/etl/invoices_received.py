@@ -3,6 +3,7 @@ import json
 import re
 import os
 import sys
+import shutil
 from pdf2image import convert_from_path
 from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
 
@@ -16,23 +17,31 @@ sys.path.append(global_route)
 
 def extract(path_invoices):
     """
-    Extrae el texto de una factura en formato PDF utilizando OCR.
+    Extrae el texto de facturas en formato PDF utilizando OCR.
     
     Parámetros:
-    - path_invoices: Ruta del archivo PDF de la factura.
-
+    - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
+    
     Retorna:
-    - El texto extraído del PDF.
+    - El texto extraído del archivo.
     """
-    images = convert_from_path(path_invoices)  # Convierte las páginas del PDF en imágenes.
-
-    extracted_text = ""
-    for img in images:
-        # Aplica OCR a cada imagen y concatena el texto extraído.
-        text = pytesseract.image_to_string(img, lang='spa')
-        extracted_text += text + "\n"
-
-    return extracted_text
+    for file in os.listdir(path_invoices):
+        if file.endswith(".pdf"):
+            file_path = os.path.join(path_invoices, file)
+            
+            images = convert_from_path(file_path)  # Convierte las páginas del PDF en imágenes.
+            extracted_text = ""
+            for img in images:
+                # Aplica OCR a cada imagen y concatena el texto extraído.
+                text = pytesseract.image_to_string(img, lang='spa')
+                extracted_text += text + "\n"
+            
+            # Procesar el archivo PDF
+            data = transform(extracted_text)
+            load(data)
+            
+            # Mover archivo a la carpeta "PROCESADOS" después de procesarlo
+            move_to_processed(file_path, path_invoices)
 
 def transform(extracted_text):
     """
@@ -55,10 +64,8 @@ def transform(extracted_text):
         'Ú': 'U',
         'N*': 'Nº', 
         'N?': 'Nº', 
-        'S.I.1': 
-        'S.I.I.',
-        'OPROFISHING.CL': 
-        '@PROFISHING.CL', 
+        'S.I.1': 'S.I.I.',
+        'OPROFISHING.CL': '@PROFISHING.CL', 
         '#$': '#'
     }
 
@@ -180,37 +187,42 @@ def transform(extracted_text):
     if total_match:
         data["total"] = float(total_match.group(1).replace('.', '').replace(',', '.'))
 
-    #print(transformed_text)
-    
-    #print(json.dumps(data, indent=4, ensure_ascii=False))
-
     return data
 
-def load(data, str_conn):
+def load(data):
     """
-    Carga los datos procesados en una base de datos (actualmente solo muestra los datos).
+    Carga los datos procesados en la base de datos.
     
     Parámetros:
     - data: El diccionario con los datos procesados de la factura.
-    - str_conn: La cadena de conexión a la base de datos (actualmente no utilizada).
     """
-    print(f"PLACEHOLDER: data cargada")
+    # Ejemplo de carga de datos en la base de datos (crear una nueva factura)
+    #create_invoice(data, 'invoices_issued')
+    print(data)
+
+def move_to_processed(file_path, path_invoices):
+    """
+    Mueve el archivo procesado a la carpeta "PROCESADOS".
+    
+    Parámetros:
+    - file_path: Ruta del archivo procesado.
+    - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
+    """
+    processed_folder = os.path.join(path_invoices, "PROCESADOS")
+    if not os.path.exists(processed_folder):
+        os.makedirs(processed_folder)
+
+    # Mover el archivo a la carpeta "PROCESADOS"
+    processed_path = os.path.join(processed_folder, os.path.basename(file_path))
+    shutil.move(file_path, processed_path)
+
+    print(f"Archivo {file_path} movido a {processed_path}")
 
 def main(invoices_received_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
+    
+    Parámetros:
+    - invoices_received_path: Ruta de la carpeta que contiene los archivos de facturas.
     """
-    #str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-    
-    # Etapa de extracción: convierte el PDF a texto usando OCR
-    extracted_text = extract(invoices_received_path)
-    
-    # Etapa de transformación: normaliza el texto y extrae los datos clave
-    data = transform(extracted_text)
-    
-    # Etapa de carga: inserta o muestra los datos en la base de datos
-    # Etapa de carga: inserta o muestra los datos en la base de datos
-    #delete_invoice(2,'invoices_received')
-    create_invoice(data,'invoices_received')
-    select = read_invoices('invoices_received')
-    print(select)
+    extract(invoices_received_path)
