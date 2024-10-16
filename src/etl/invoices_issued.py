@@ -5,7 +5,7 @@ import os
 import sys
 import shutil
 from pdf2image import convert_from_path
-from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
+from src.core.crud import *
 
 route = os.path.abspath(__file__)
 index_route = route.find("BackendHookedDocs")
@@ -277,7 +277,7 @@ def load(data):
     Parámetros:
     - data: El diccionario con los datos procesados de la factura.
     """
-    #create_invoice(data, 'invoices_issued')
+    create_invoice(data, 'invoices_issued')
     #select = read_invoices('invoices_issued')
     #print(select)
     print(data)

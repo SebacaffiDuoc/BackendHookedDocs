@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import pandas as pd
+from src.core.crud import *
 
 # Configuración de rutas para agregar el directorio src al path de Python
 route = os.path.abspath(__file__)
@@ -53,20 +54,20 @@ def transform(data):
 
     # Convertir la columna 'fecha' al formato deseado 'yyyy-mm-dd hh-mm-ss'
     if 'fecha' in data.columns:
-        data['fecha'] = pd.to_datetime(data['fecha']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        #data['fecha'] = pd.to_datetime(data['fecha']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        data['fecha'] = pd.to_datetime(data['fecha']).dt.strftime('%Y%m%d')
     
     return data
 
-def load(data, str_conn):
+def load(data):
     """
     Carga los datos procesados en una base de datos (actualmente solo muestra los datos).
     
     Parámetros:
     - data: El DataFrame con los datos procesados de la factura.
-    - str_conn: La cadena de conexión a la base de datos (actualmente no utilizada).
     """
-    print(f"PLACEHOLDER: data cargada")
-    print(data.head())
+    create_physical_tickets(data)
+    #print(data.head())
 
 def move_to_processed(file_path, base_path):
     """
@@ -87,8 +88,7 @@ def main(physical_tickets_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
-    str_conn = "string de conexión a la BD oracle"  # Placeholder para la cadena de conexión a la base de datos
-
+    
     # Etapa de extracción: leer todos los archivos Excel de la carpeta
     extracted_data_list = extract(physical_tickets_path)
 
@@ -97,7 +97,7 @@ def main(physical_tickets_path):
         data_final = transform(data)
 
         # Etapa de carga: inserta o muestra los datos en la base de datos
-        load(data_final, str_conn)
+        load(data_final)
 
         # Mover el archivo a la carpeta "PROCESADOS" después de procesarlo
         move_to_processed(file_path, physical_tickets_path)
