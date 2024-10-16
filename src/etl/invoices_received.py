@@ -197,7 +197,7 @@ def load(data):
     - data: El diccionario con los datos procesados de la factura.
     """
     # Ejemplo de carga de datos en la base de datos (crear una nueva factura)
-    #create_invoice(data, 'invoices_issued')
+    create_invoice(data, 'invoices_received')
     print(data)
 
 def move_to_processed(file_path, path_invoices):

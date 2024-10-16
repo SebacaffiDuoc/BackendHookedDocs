@@ -155,3 +155,112 @@ def delete_invoice(invoice_id,table_name):
     # Cerrar cursor y conexión
     cursor.close()
     close_connection(connection)
+
+
+#############################
+def create_physical_tickets(data):
+    """Insertar data en tabla physical_tickets."""
+    connection = get_connection()
+    if not connection:
+        return
+    
+    cursor = connection.cursor()
+       
+    # Convertir el DataFrame en una lista de diccionarios
+    data_to_insert = data.to_dict(orient='records')
+
+    # Definir la sentencia SQL de inserción
+    insert_sql = """
+    INSERT INTO physical_tickets (
+        folio,
+        neto,
+        iva,
+        total,
+        dte,
+        fecha,
+        rut_vendedor,
+        sucursal
+    ) VALUES (
+        :folio,
+        :neto,
+        :iva,
+        :total,
+        :dte,
+        to_date(:fecha, 'YYYYMMDD'),
+        :vendedor,
+        :sucursal
+    )
+    """
+
+    try:
+        # Ejecutar la inserción
+        cursor.executemany(insert_sql, data_to_insert)
+        
+        # Confirmar los cambios
+        connection.commit()
+        print(f"{cursor.rowcount} registros insertados exitosamente.")
+    except Exception as e:
+        print("Error al insertar datos:", e)
+        connection.rollback()
+    finally:
+        # Cerrar cursor y conexión
+        cursor.close()
+        close_connection(connection)
+
+
+def create_electronic_tickets(data):
+    """Insertar data en tabla electronic_tickets."""
+    connection = get_connection()
+    if not connection:
+        return
+    
+    cursor = connection.cursor()
+       
+    # Convertir el DataFrame en una lista de diccionarios
+    data_to_insert = data.to_dict(orient='records')
+
+    # Definir la sentencia SQL de inserción
+    insert_sql = """
+    INSERT INTO electronic_tickets (
+        tipo,
+        tipo_documento,
+        folio,
+        razon_social_receptor,
+        fecha_publicacion,
+        emision,
+        monto_neto,
+        monto_exento,
+        monto_iva,
+        monto_total,
+        fecha_sii ,
+        estado_sii
+    ) VALUES (
+        :tipo,
+        :tipo_documento,
+        :folio,
+        :razon_social_receptor,
+        to_date(:publicacion,'YYYYMMDD'),
+        to_date(:emision,'YYYYMMDD'),
+        :monto_neto,
+        :monto_exento,
+        :monto_iva,
+        :monto_total,
+        to_date(:fecha_sii,'YYYYMMDD'),
+        :estado_sii
+    )
+    """
+
+    try:
+        # Ejecutar la inserción
+        cursor.executemany(insert_sql, data_to_insert)
+        
+        # Confirmar los cambios
+        connection.commit()
+        print(f"{cursor.rowcount} registros insertados exitosamente.")
+    except Exception as e:
+        print("Error al insertar datos:", e)
+        connection.rollback()
+    finally:
+        # Cerrar cursor y conexión
+        cursor.close()
+        close_connection(connection)
