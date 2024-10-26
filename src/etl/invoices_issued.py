@@ -1,16 +1,16 @@
 import pytesseract
-import json
 import re
 import os
 import sys
 import shutil
 from pdf2image import convert_from_path
-from src.core.crud import *
 
 route = os.path.abspath(__file__)
 index_route = route.find("BackendHookedDocs")
 local_path = route[:index_route + len("BackendHookedDocs")]
 global_route = os.path.join(local_path, "src")
+
+from core.crud import *
 
 sys.path.append(global_route)
 
@@ -167,7 +167,7 @@ def transform(extracted_text):
 
     # Extrae el número de factura basado en el contexto
     invoice_number = None
-    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*(.*?)\s*S\.I\.I\.\s*-\s*VALPARAISO', transformed_text, re.DOTALL)
+    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N[ºN]?\s*(\d+)', transformed_text)
     if invoice_number_match:
         between_text = invoice_number_match.group(1).strip()
         num_match = re.search(r'N[º2]?\s*(\d+)', between_text)
@@ -280,7 +280,6 @@ def load(data):
     create_invoice(data, 'invoices_issued')
     #select = read_invoices('invoices_issued')
     #print(select)
-    print(data)
 
 def move_to_processed(file_path, path_invoices):
     """
