@@ -5,7 +5,6 @@ import os
 import sys
 import shutil
 from pdf2image import convert_from_path
-from src.core.crud import create_invoice, read_invoices, update_invoice, delete_invoice
 
 # Configuración de rutas para agregar el directorio src al path de Python
 route = os.path.abspath(__file__)
@@ -15,37 +14,35 @@ global_route = os.path.join(local_path, "src")
 
 sys.path.append(global_route)
 
+from core.crud import create_invoice
+
 def extract(path_invoices):
     """
     Extrae el texto de facturas en formato PDF utilizando OCR.
     
     Parámetros:
     - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
-    
-    Retorna:
-    - El texto extraído del archivo.
     """
     for file in os.listdir(path_invoices):
         if file.endswith(".pdf"):
             file_path = os.path.join(path_invoices, file)
-            
             images = convert_from_path(file_path)  # Convierte las páginas del PDF en imágenes.
             extracted_text = ""
             for img in images:
                 # Aplica OCR a cada imagen y concatena el texto extraído.
                 text = pytesseract.image_to_string(img, lang='spa')
                 extracted_text += text + "\n"
-            
-            # Procesar el archivo PDF
+
+            # Procesar el archivo PDF según el proveedor
             data = transform(extracted_text)
             load(data)
-            
+
             # Mover archivo a la carpeta "PROCESADOS" después de procesarlo
             move_to_processed(file_path, path_invoices)
 
 def transform(extracted_text):
     """
-    Transforma el texto extraído, realiza reemplazos de caracteres y extrae los datos estructurados de la factura.
+    Transforma el texto extraído y extrae los datos estructurados según el proveedor.
     
     Parámetros:
     - extracted_text: El texto extraído del PDF de la factura.
@@ -54,6 +51,27 @@ def transform(extracted_text):
     - Un diccionario con los datos estructurados de la factura.
     """
     transformed_text = extracted_text.upper()
+
+    # Verificar el proveedor
+    if "PROFESSIONAL FISHING SPA" in transformed_text:
+        return transform_professional_fishing(transformed_text)
+    elif "MI TIENDA SPA" in transformed_text:
+        return transform_mi_tienda(transformed_text)
+    elif "RAPALA" in transformed_text:
+        return transform_rapala(transformed_text)
+    else:
+        raise ValueError("Proveedor no reconocido en el documento.")
+
+def transform_professional_fishing(text):
+    """
+    Extrae los datos de la factura de PROFESSIONAL FISHING SPA.
+    
+    Parámetros:
+    - text: Texto extraído de la factura.
+    
+    Retorna:
+    - Un diccionario con los datos estructurados.
+    """
 
     # Diccionario de reemplazos para normalizar el texto
     replacements = {
@@ -71,21 +89,19 @@ def transform(extracted_text):
 
     # Aplica los reemplazos al texto
     for old, new in replacements.items():
-        transformed_text = transformed_text.replace(old, new)
+        text = text.replace(old, new)
 
     # Inicializa el diccionario de datos para almacenar los campos extraídos
     data = {
         "invoice_number": None,
         "issue_date": None,
         "pay_method": None,
-        "sales_channel": None,
-        "order_number": None,
         "items": [],
         "subtotal": None,
         "tax": None,
         "total": None,
         "issuer": {
-            "name": None,
+            "name": "PROFESSIONAL FISHING SPA",
             "rut": None,
             "address": None,
             "email": None,
@@ -94,76 +110,61 @@ def transform(extracted_text):
     }
 
     # Extrae el nombre del emisor
-    issuer_name_match = re.search(r'PROFESSIONAL\s+FISHING\s+SPA', transformed_text)
-    if issuer_name_match:
-        data["issuer"]["name"] = issuer_name_match.group(0)
+    data["issuer"]["name"] = "PROFESSIONAL FISHING SPA"
 
     # Extrae el RUT del emisor
-    rut_match = re.search(r'R\.U\.T:\s*(\d+\.\d+\.\d+-\d+)', transformed_text)
+    rut_match = re.search(r'R\.U\.T:\s*(\d+\.\d+\.\d+-\d+)', text)
     if rut_match:
         data["issuer"]["rut"] = rut_match.group(1)
 
     # Extrae la dirección del emisor
-    address_match = re.search(r'DIRECCION:\s*(.+?),\s*(\w+)', transformed_text)
+    address_match = re.search(r'DIRECCION:\s*(.+?),\s*(\w+)', text)
     if address_match:
         data["issuer"]["address"] = address_match.group(1) + ", " + address_match.group(2)
 
     # Extrae el email del emisor
-    email_match = re.search(r'EMAIL:\s*(\S+@\S+)', transformed_text)
+    email_match = re.search(r'EMAIL:\s*(\S+@\S+)', text)
     if email_match:
         data["issuer"]["email"] = email_match.group(1)
 
     # Extrae el número de teléfono del emisor
-    phone_match = re.search(r'TELEFONO\(S\):\s*(\+?\d+)', transformed_text)
+    phone_match = re.search(r'TELEFONO\(S\):\s*(\+?\d+)', text)
     if phone_match:
         data["issuer"]["phone"] = phone_match.group(1)
 
     # Extrae el número de factura
-    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N[º*]\s*(\d+)', transformed_text)
+    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N[º*]\s*(\d+)', text)
     if invoice_number_match:
         data["invoice_number"] = invoice_number_match.group(1)
 
     # Extrae la fecha de emisión
-    issue_date_match = re.search(r'FECHA EMISION:\s*([0-9]{1,2} DE \w+ DE \d{4})', transformed_text)
+    issue_date_match = re.search(r'FECHA EMISION:\s*([0-9]{1,2} DE \w+ DE \d{4})', text)
     if issue_date_match:
         data["issue_date"] = issue_date_match.group(1)
 
     # Extrae el método de pago
-    pay_method_match = re.search(r'FORMA PAGO:\s*(.+?)\s*(?:CANAL VENTA:|$)', transformed_text)
+    pay_method_match = re.search(r'FORMA PAGO:\s*(.+?)\s*(?:CANAL VENTA:|$)', text)
     if pay_method_match:
         data["pay_method"] = pay_method_match.group(1).strip()
 
-    # Extrae el canal de venta
-    sales_channel_match = re.search(r'CANAL VENTA:\s*(.+?)\s*\|', transformed_text)
-    if sales_channel_match:
-        data["sales_channel"] = sales_channel_match.group(1).strip()
-
-    # Extrae el número de pedido
-    order_number_match = re.search(r'N[º*] PEDIDO:\s*(\d+)', transformed_text)
-    if order_number_match:
-        data["order_number"] = order_number_match.group(1)
-
-    # Extrae la sección de los ítems entre los delimitadores "CODIGO DESCRIPCION..." y "Nº LINEAS"
+    # Extrae los ítems de la factura
     items_section = re.search(
         r'CODIGO DESCRIPCION PRECIO DSCTO\.\(%\) RECARGO AF/EX VALOR\s*(.*?)\s*Nº LINEAS:', 
-        transformed_text, 
+        text, 
         re.DOTALL
     )
 
-    # Procesa cada línea de ítems
     if items_section:
         items_text = items_section.group(1).strip()
         item_lines = items_text.splitlines()
 
         for line in item_lines:
-            # Extrae los detalles de cada ítem usando una expresión regular
             item_match = re.match(
                 r'(?P<code>\S+)\s+(?P<description>.+?)\s+(?P<unit_price>[0-9,.]+)\s+AFECTO\s+(?P<total_price>[0-9,.]+)', 
                 line
             )
 
             if item_match:
-                # Agrega el ítem al diccionario de datos
                 item = {
                     "code": item_match.group("code").strip(),
                     "description": item_match.group("description").strip(),
@@ -173,17 +174,139 @@ def transform(extracted_text):
                 data["items"].append(item)
 
     # Extrae el subtotal
-    subtotal_match = re.search(r'SUBTOTAL:\s*\$\s*([0-9,.]+)', transformed_text)
+    subtotal_match = re.search(r'SUBTOTAL:\s*\$\s*([0-9,.]+)', text)
     if subtotal_match:
         data["subtotal"] = float(subtotal_match.group(1).replace('.', '').replace(',', '.'))
 
     # Extrae el IVA
-    tax_match = re.search(r'IVA \(19%\):\s*\$\s*([0-9,.]+)', transformed_text)
+    tax_match = re.search(r'IVA \(19%\):\s*\$\s*([0-9,.]+)', text)
     if tax_match:
         data["tax"] = float(tax_match.group(1).replace('.', '').replace(',', '.'))
 
     # Extrae el total
-    total_match = re.search(r'TOTAL:\s*\$\s*([0-9,.]+)', transformed_text)
+    total_match = re.search(r'TOTAL:\s*\$\s*([0-9,.]+)', text)
+    if total_match:
+        data["total"] = float(total_match.group(1).replace('.', '').replace(',', '.'))
+
+    return data
+
+def transform_mi_tienda(text):
+    """
+    Extrae los datos de la factura de MI TIENDA SPA.
+    
+    Parámetros:
+    - text: Texto extraído de la factura.
+    
+    Retorna:
+    - Un diccionario con los datos estructurados.
+    """
+    data = {
+        "invoice_number": None,
+        "issue_date": None,
+        "pay_method": "TRANSFERENCIA BANCARIA",
+        "items": [],
+        "subtotal": None,
+        "tax": None,
+        "total": None,
+        "issuer": {
+            "name": "MI TIENDA SPA",
+            "rut": None,
+            "address": "AV PROVIDENCIA 1208 OF 403",
+            "email": "VENTAS@BLUEFISHING.CL",
+            "phone": "+56938644642"
+        }
+    }
+
+    # Extrae el RUT
+    rut_match = re.search(r'R\.U\.T:\s*(\d+\.\d+\.\d+-\d+)', text)
+    if rut_match:
+        data["issuer"]["rut"] = rut_match.group(1)
+
+    # Extrae la fecha de emisión
+    issue_date_match = re.search(r'FECHA EMISIÓN:\s*(\d{2}/\d{2}/\d{4})', text)
+    if issue_date_match:
+        data["issue_date"] = issue_date_match.group(1)
+
+    # Extrae el total
+    total_match = re.search(r'TOTAL\s*\(\$\)\s*([0-9,.]+)', text)
+    if total_match:
+        data["total"] = float(total_match.group(1).replace('.', '').replace(',', '.'))
+
+    # Extrae los ítems
+    items_section = re.findall(r'(\d+)\s+([A-Z\s-]+)\s+\$ ([\d.,]+)\s+([\d.]+)%\s+\$ ([\d.,]+)', text)
+    for item in items_section:
+        data["items"].append({
+            "quantity": int(item[0]),
+            "description": item[1].strip(),
+            "unit_price": float(item[2].replace(',', '.')),
+            "discount_percentage": float(item[3]),
+            "subtotal": float(item[4].replace(',', '.'))
+        })
+
+    return data
+
+def transform_rapala(text):
+    """
+    Extrae los datos de la factura de RAPALA.
+    
+    Parámetros:
+    - text: Texto extraído de la factura.
+    
+    Retorna:
+    - Un diccionario con los datos estructurados.
+    """
+
+    data = {
+        "invoice_number": None,
+        "issue_date": None,
+        "pay_method": "CONTADO",
+        "items": [],
+        "subtotal": None,
+        "tax": None,
+        "total": None,
+        "issuer": {
+            "name": "RAPALA",
+            "rut": None,
+            "address": "BLANCO N 1033, VALPARAISO",
+            "phone": "032-2223808"
+        }
+    }
+
+    # Extrae el número de factura
+    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N°\s*(\d+)', text)
+    if invoice_number_match:
+        data["invoice_number"] = invoice_number_match.group(1)
+
+    # Extrae la fecha de emisión
+    issue_date_match = re.search(r'FECHA EMISION\s*:\s*(\d{2} - \w+ de \d{4})', text)
+    if issue_date_match:
+        data["issue_date"] = issue_date_match.group(1)
+
+    # Extrae los ítems
+    items_section = re.findall(r'(\S+)\s+(.+?)\s+(\d+)\s+Unid\s+([\d.,]+)\s+([\d.,]+)%\s+([\d.,]+)\s+([\d.,]+)', text)
+    for item in items_section:
+        data["items"].append({
+            "code": item[0],
+            "description": item[1].strip(),
+            "quantity": int(item[2]),
+            "unit_price": float(item[3].replace(',', '.')),
+            "discount_percentage": float(item[4].replace(',', '.')),
+            "discount_value": float(item[5].replace(',', '.')),
+            "total_price": float(item[6].replace(',', '.'))
+        })
+
+    # Extrae el subtotal
+    subtotal_match = re.search(r'NETO\s*\$\s*([\d,.]+)', text)
+    if subtotal_match:
+        data["subtotal"] = float(subtotal_match.group(1).replace('.', '').replace(',', '.'))
+
+    # Extrae el IVA
+    tax_match = re.search(r'I\.V\.A\.\s*19%\s*\$\s*([\d,.]+)', text)
+    if tax_match:
+        data["tax"] = float(tax_match.group(1).replace('.', '').replace(',', '.'))
+
+    # Extrae el total
+    total_match = re.search(r'TOTAL\s*\$\s*([\d,.]+)', text)
     if total_match:
         data["total"] = float(total_match.group(1).replace('.', '').replace(',', '.'))
 
@@ -198,7 +321,6 @@ def load(data):
     """
     # Ejemplo de carga de datos en la base de datos (crear una nueva factura)
     create_invoice(data, 'invoices_received')
-    print(data)
 
 def move_to_processed(file_path, path_invoices):
     """
@@ -225,4 +347,6 @@ def main(invoices_received_path):
     Parámetros:
     - invoices_received_path: Ruta de la carpeta que contiene los archivos de facturas.
     """
+    
     extract(invoices_received_path)
+    

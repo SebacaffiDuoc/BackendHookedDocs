@@ -145,10 +145,12 @@ class HookedDocsApp:
     def run_etl_process(self, path, etl_function, document_type):
         # Mostrar mensaje mientras se realiza el procesamiento
         try:
+            print(f"Procesando {document_type} en la carpeta: {path}")
             messagebox.showinfo("Procesando", f"Procesando {document_type} en la carpeta: {path}")
             etl_function(path)
             messagebox.showinfo("Éxito", f"{document_type} procesadas exitosamente.")
         except Exception as e:
+            print(f"Error al procesar {document_type}: {e}")
             messagebox.showerror("Error", f"Ocurrió un error al procesar {document_type}:\n{str(e)}")
 
 if __name__ == "__main__":
