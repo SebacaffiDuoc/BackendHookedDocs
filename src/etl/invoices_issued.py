@@ -80,6 +80,8 @@ def transform(extracted_text):
     for old, new in replacements.items():
         transformed_text = transformed_text.replace(old, new)
 
+    print(transformed_text)
+
     # Inicializa el diccionario de datos para almacenar los campos extraídos
     data = {
         "pay_method": None,
@@ -167,18 +169,12 @@ def transform(extracted_text):
 
     # Extrae el número de factura basado en el contexto
     invoice_number = None
-    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N[ºN]?\s*(\d+)', transformed_text)
+    # Extrae el número de factura
+    invoice_number_match = re.search(r'FACTURA ELECTRONICA\s*N2[ºN]?\s*(\d+)', transformed_text)
     if invoice_number_match:
-        between_text = invoice_number_match.group(1).strip()
-        num_match = re.search(r'N[º2]?\s*(\d+)', between_text)
-        if num_match:
-            invoice_number = num_match.group(1).replace(' ', '')
-            invoice_number = invoice_number.replace('N2', 'Nº')
-            data["issuer"]["invoice_number"] = invoice_number
-        else:
-            num_match = re.search(r'(\d+)', between_text)
-            if num_match:
-                data["issuer"]["invoice_number"] = num_match.group(1)
+        invoice_number = invoice_number_match.group(1)
+        data["issuer"]["invoice_number"] = invoice_number
+
 
     # Extrae fecha de emision
     issue_date_match = re.search(r'FECHA EMISION:\s*([0-9]{1,2}) DE (\w+) DEL (\d{4})', transformed_text)
@@ -299,3 +295,4 @@ def main(invoices_issued_path):
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
     extract(invoices_issued_path)
+    
