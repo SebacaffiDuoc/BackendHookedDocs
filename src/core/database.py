@@ -4,7 +4,7 @@ import oracledb
 DB_CONFIG = {
     "username": "HookedDeveloper",
     "password": "HookedDeveloperDuoc2024",
-    "host": "192.168.1.90",       #"172.17.0.1",  # IP del host de Oracle en Docker
+    "host": "172.17.0.1",       #"172.17.0.1",  "192.168.1.90", # IP del host de Oracle en Docker
     "port": 1521,               # Puerto del contenedor
     "sid": "XEPDB1"             # SID de la base de datos
 }

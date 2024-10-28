@@ -98,5 +98,5 @@ def main(electronic_tickets_path):
         load(data_final)
 
         # Mover el archivo a la carpeta "PROCESADOS" después de procesarlo
-        #move_to_processed(file_path, electronic_tickets_path)
+        move_to_processed(file_path, electronic_tickets_path)
         
