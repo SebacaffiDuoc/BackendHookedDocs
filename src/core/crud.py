@@ -20,10 +20,12 @@ def create_invoice(data,table_name):
     cursor.execute(insert_query, invoice_data=invoice_json)
 
     #ejecuta auditoria
+    
     if table_name == 'invoices_issued' :
         cursor.callproc('pkg_issued.main')
     else:
         cursor.callproc('pkg_received.main')
+    
     
     # Confirmar los cambios
     connection.commit()
