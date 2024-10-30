@@ -63,9 +63,9 @@ def read_select_invoice(invoice_number):
     cursor = connection.cursor()
     
     # Consulta de selección
-    select_query = f"select * from flat_invoices_issued t1
+    select_query = f"""select * from flat_invoices_issued t1
                     join  flat_invoices_issued_items t2 on (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
-                    where t1.invoice_number = {invoice_number}"
+                    where t1.invoice_number = {invoice_number}"""
     
     # Ejecutar la consulta
     cursor.execute(select_query)
