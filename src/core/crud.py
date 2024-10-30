@@ -57,13 +57,15 @@ def read_invoices(table_name):
     return invoices
 
 # Read invoice_number data
-def read_select_invoice(table_name, invoice_number):
+def read_select_invoice(invoice_number):
     """Leer todas las facturas desde la tabla invoices."""
     connection = get_connection()
     cursor = connection.cursor()
     
     # Consulta de selección
-    select_query = f"SELECT * FROM {table_name}where json_value(invoice_data, '$.issuer.invoice_number') = {invoice_number}"
+    select_query = f"select * from flat_invoices_issued t1
+                    join  flat_invoices_issued_items t2 on (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
+                    where t1.invoice_number = {invoice_number}"
     
     # Ejecutar la consulta
     cursor.execute(select_query)

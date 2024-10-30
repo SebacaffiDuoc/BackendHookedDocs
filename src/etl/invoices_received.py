@@ -584,6 +584,4 @@ def main(invoices_received_path):
     """
     
     extract(invoices_received_path)
-
-if __name__ == "_main_":
-    main("/home/malcom/Documentos/BackendHookedDocs/docs/invoices_received/")
+    
