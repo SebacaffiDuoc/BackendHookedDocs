@@ -1,9 +1,7 @@
-fastapi[all]
-uvicorn
-pytesseract
 Pillow
 pandas
-pdf2image
 openpyxl
 xlrd
 oracledb
+pdfplumber
+python-dotenv
