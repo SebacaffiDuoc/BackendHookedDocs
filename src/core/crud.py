@@ -20,7 +20,6 @@ def create_invoice(data,table_name):
     cursor.execute(insert_query, invoice_data=invoice_json)
 
     #ejecuta auditoria
-    
     if table_name == 'invoices_issued' :
         cursor.callproc('pkg_issued.main')
     else:
@@ -56,29 +55,97 @@ def read_invoices(table_name):
     
     return invoices
 
-# Read invoice_number data
-def read_select_invoice(invoice_number):
+def read_select_invoice(number, functionalitie):
     """Leer todas las facturas desde la tabla invoices."""
     connection = get_connection()
     cursor = connection.cursor()
-    
-    # Consulta de selección
-    select_query = f"""select * from flat_invoices_issued t1
-                    join  flat_invoices_issued_items t2 on (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
-                    where t1.invoice_number = {invoice_number}"""
-    
-    # Ejecutar la consulta
-    cursor.execute(select_query)
+
+    if functionalitie == 1:
+        # Consulta de selección para facturas recibidas
+        select_query = """SELECT  
+                            INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
+                            TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
+                          FROM flat_invoices_received t1
+                          JOIN flat_invoices_received_items t2 ON (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
+                          WHERE t1.invoice_number = %s"""
+    elif functionalitie == 2:
+        # Consulta de selección para facturas emitidas
+        select_query = """SELECT 
+                            INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
+                            TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
+                          FROM flat_invoices_issued t1
+                          JOIN flat_invoices_issued_items t2 ON (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
+                          WHERE t1.invoice_number = %s"""
+    elif functionalitie == 3:
+        # Consulta de selección para boletas electrónicas
+        select_query = """SELECT 
+                            TIPO_DOCUMENTO, FOLIO, EMISION, MONTO_NETO, 
+                            MONTO_EXENTO, MONTO_IVA, MONTO_TOTAL
+                          FROM electronic_tickets
+                          WHERE folio = %s"""
+    elif functionalitie == 4:
+        # Consulta de selección para boletas físicas
+        select_query = """SELECT 
+                            FOLIO, NETO, IVA, TOTAL, 
+                            FECHA, RUT_VENDEDOR, SUCURSAL
+                          FROM physical_tickets
+                          WHERE folio = %s"""
+    else:
+        # Manejo de funcionalidad no reconocida
+        cursor.close()
+        close_connection(connection)
+        return []
+
+    # Ejecutar la consulta con parámetros para evitar inyección SQL
+    cursor.execute(select_query, (number,))
     rows = cursor.fetchall()
-    
-    # Procesar los resultados
-    invoices = [{"id": row[0], "data": row[1]} for row in rows]
-    
+
+    # Procesar los resultados según la funcionalidad
+    invoices = []
+    if functionalitie in [1, 2]:
+        for row in rows:
+            invoice = {
+                "INVOICE_NUMBER": row[0],
+                "ISSUE_DATE": row[1],
+                "SUBTOTAL": row[2],
+                "TAX": row[3],
+                "TOTAL": row[4],
+                "PAY_METHOD": row[5],
+                "ISSUER_NAME": row[6],
+                "ISSUER_ADDRESS": row[7]
+            }
+            invoices.append(invoice)
+    elif functionalitie == 3:
+        for row in rows:
+            invoice = {
+                "TIPO_DOCUMENTO": row[0],
+                "FOLIO": row[1],
+                "EMISION": row[2],
+                "MONTO_NETO": row[3],
+                "MONTO_EXENTO": row[4],
+                "MONTO_IVA": row[5],
+                "MONTO_TOTAL": row[6]
+            }
+            invoices.append(invoice)
+    elif functionalitie == 4:
+        for row in rows:
+            invoice = {
+                "FOLIO": row[0],
+                "NETO": row[1],
+                "IVA": row[2],
+                "TOTAL": row[3],
+                "FECHA": row[4],
+                "RUT_VENDEDOR": row[5],
+                "SUCURSAL": row[6]
+            }
+            invoices.append(invoice)
+
     # Cerrar cursor y conexión
     cursor.close()
     close_connection(connection)
-    
+
     return invoices
+
 
 # Update
 def update_invoice(invoice_number, new_data, table_name):
