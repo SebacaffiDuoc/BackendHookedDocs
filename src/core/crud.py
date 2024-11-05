@@ -146,7 +146,6 @@ def read_select_invoice(number, functionalitie):
 
     return invoices
 
-
 # Update
 def update_invoice(invoice_number, new_data, table_name):
     """Actualizar una factura existente en la tabla invoices."""
@@ -179,8 +178,75 @@ def update_invoice(invoice_number, new_data, table_name):
     cursor.close()
     close_connection(connection)
 
-# Update para columnas subtotal, tax, y total, parametros: numero de factura, nuevo subtotal, nuevo tax, nuevo total, tabla a modificar
-def update_selected_invoice(invoice_number, new_subtotal, new_tax, new_total, table_name):
+def update_selected_invoice(invoice_number, updated_fields, functionalitie):
+    """
+    Actualizar campos específicos de una factura existente según la funcionalidad.
+    
+    Parameters:
+    - invoice_number: Número de factura o folio que identifica el registro a actualizar.
+    - updated_fields: Diccionario con los campos y sus nuevos valores.
+    - functionalitie: Número que indica la funcionalidad (1: Facturas Recibidas, 2: Facturas Emitidas, 3: Boletas Electrónicas, 4: Boletas Físicas).
+    """
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    if functionalitie == 1:
+        # Actualización para facturas recibidas
+        table_name = 'flat_invoices_received'
+        id_field = 'INVOICE_NUMBER'
+        valid_fields = ['ISSUE_DATE', 'SUBTOTAL', 'TAX', 'TOTAL', 'PAY_METHOD', 'ISSUER_NAME', 'ISSUER_ADDRESS']
+    elif functionalitie == 2:
+        # Actualización para facturas emitidas
+        table_name = 'flat_invoices_issued'
+        id_field = 'INVOICE_NUMBER'
+        valid_fields = ['ISSUE_DATE', 'SUBTOTAL', 'TAX', 'TOTAL', 'PAY_METHOD', 'ISSUER_NAME', 'ISSUER_ADDRESS']
+    elif functionalitie == 3:
+        # Actualización para boletas electrónicas
+        table_name = 'electronic_tickets'
+        id_field = 'FOLIO'
+        valid_fields = ['TIPO_DOCUMENTO', 'EMISION', 'MONTO_NETO', 'MONTO_EXENTO', 'MONTO_IVA', 'MONTO_TOTAL']
+    elif functionalitie == 4:
+        # Actualización para boletas físicas
+        table_name = 'physical_tickets'
+        id_field = 'FOLIO'
+        valid_fields = ['NETO', 'IVA', 'TOTAL', 'FECHA', 'RUT_VENDEDOR', 'SUCURSAL']
+    else:
+        # Manejo de funcionalidad no reconocida
+        cursor.close()
+        close_connection(connection)
+        return
+
+    # Filtrar los campos válidos a actualizar
+    fields_to_update = {k: v for k, v in updated_fields.items() if k in valid_fields}
+
+    if not fields_to_update:
+        # Si no hay campos válidos para actualizar, salir de la función
+        cursor.close()
+        close_connection(connection)
+        return
+
+    # Construir la parte SET de la consulta
+    set_clause = ', '.join([f"{field} = %s" for field in fields_to_update.keys()])
+    params = list(fields_to_update.values())
+    params.append(invoice_number)
+
+    # Construir la consulta de actualización
+    update_query = f"""
+        UPDATE {table_name}
+        SET {set_clause}
+        WHERE {id_field} = %s
+    """
+
+    # Ejecutar la consulta de actualización con parámetros
+    cursor.execute(update_query, params)
+
+    # Confirmar los cambios
+    connection.commit()
+
+    # Cerrar cursor y conexión
+    cursor.close()
+    close_connection(connection)
+
     """Actualizar campos específicos de una factura existente en la tabla especificada."""
     connection = get_connection()
     cursor = connection.cursor()
