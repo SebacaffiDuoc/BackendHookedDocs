@@ -62,34 +62,32 @@ def read_select_invoice(number, functionalitie):
 
     if functionalitie == 1:
         # Consulta de selección para facturas recibidas
-        select_query = """SELECT  
+        select_query = f"""SELECT  
                             INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
                             TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
                           FROM flat_invoices_received t1
-                          JOIN flat_invoices_received_items t2 ON (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
-                          WHERE t1.invoice_number = %s"""
+                          WHERE t1.invoice_number = {number}"""
     elif functionalitie == 2:
         # Consulta de selección para facturas emitidas
-        select_query = """SELECT 
+        select_query = f"""SELECT 
                             INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
                             TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
                           FROM flat_invoices_issued t1
-                          JOIN flat_invoices_issued_items t2 ON (t1.INVOICE_NUMBER = t2.INVOICE_NUMBER_FK)
-                          WHERE t1.invoice_number = %s"""
+                          WHERE t1.invoice_number = {number}"""
     elif functionalitie == 3:
         # Consulta de selección para boletas electrónicas
-        select_query = """SELECT 
+        select_query = f"""SELECT 
                             TIPO_DOCUMENTO, FOLIO, EMISION, MONTO_NETO, 
                             MONTO_EXENTO, MONTO_IVA, MONTO_TOTAL
                           FROM electronic_tickets
-                          WHERE folio = %s"""
+                          WHERE folio = {number}"""
     elif functionalitie == 4:
         # Consulta de selección para boletas físicas
-        select_query = """SELECT 
+        select_query = f"""SELECT 
                             FOLIO, NETO, IVA, TOTAL, 
                             FECHA, RUT_VENDEDOR, SUCURSAL
                           FROM physical_tickets
-                          WHERE folio = %s"""
+                          WHERE folio = {number}"""
     else:
         # Manejo de funcionalidad no reconocida
         cursor.close()
