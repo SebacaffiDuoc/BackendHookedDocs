@@ -12,10 +12,11 @@ global_route = os.path.join(local_path, "src")
 
 sys.path.append(global_route)
 
-from etl.physical_tickets import main as fun_pt
-from etl.electronic_tickets import main as fun_et
-from etl.invoices_issued import main as fun_ii
-from etl.invoices_received import main as fun_ir
+from src.etl.physical_tickets import main as fun_pt
+from src.etl.electronic_tickets import main as fun_et
+from src.etl.invoices_issued import main as fun_ii
+from src.etl.invoices_received import main as fun_ir
+from src.core.crud import read_select_invoice, update_selected_invoice, delete_invoice
 
 class HookedDocsApp:
     def __init__(self, root):
@@ -36,10 +37,10 @@ class HookedDocsApp:
         notebook.pack(expand=True, fill='both')
 
         # Pestaña para cada funcionalidad
-        self.add_tab(notebook, "Facturas Recibidas", self.process_facturas_recibidas)
-        self.add_tab(notebook, "Facturas Emitidas", self.process_facturas_emitidas)
-        self.add_tab(notebook, "Boletas Físicas", self.process_boletas_fisicas)
-        self.add_tab(notebook, "Boletas Electrónicas", self.process_boletas_electronicas)
+        self.facturas_recibidas_tab = self.add_tab(notebook, "Facturas Recibidas", 1)
+        self.facturas_emitidas_tab = self.add_tab(notebook, "Facturas Emitidas", 2)
+        self.boletas_fisicas_tab = self.add_tab(notebook, "Boletas Físicas", 3)
+        self.boletas_electronicas_tab = self.add_tab(notebook, "Boletas Electrónicas", 4)
 
         # Cargar configuraciones previas si existen
         self.config_data = self.load_config()
@@ -50,14 +51,28 @@ class HookedDocsApp:
         self.boletas_fisicas_path = self.config_data.get("Boletas Físicas", "")
         self.boletas_electronicas_path = self.config_data.get("Boletas Electrónicas", "")
 
-    def add_tab(self, notebook, title, command):
+        # Variable para almacenar el tipo de documento actual
+        self.current_document_type = None
+        self.current_functionality_number = None
+
+    def add_tab(self, notebook, title, functionality_number):
         # Crear un Frame para la pestaña
         frame = ttk.Frame(notebook)
         notebook.add(frame, text=title)
 
         # Botón que ejecuta el proceso específico de cada pestaña
-        process_button = tk.Button(frame, text=f"Procesar {title}", command=command)
-        process_button.pack(pady=20)
+        process_button = tk.Button(frame, text=f"Procesar {title}", command=lambda: self.process_documents(title))
+        process_button.pack(pady=10)
+
+        # Botón para actualizar facturas o boletas
+        update_button = tk.Button(frame, text=f"Actualizar {title}", command=lambda: self.open_update_window(title, functionality_number))
+        update_button.pack(pady=10)
+
+        # Botón para eliminar facturas o boletas
+        delete_button = tk.Button(frame, text=f"Eliminar {title}", command=lambda: self.delete_document(title, functionality_number))
+        delete_button.pack(pady=10)
+
+        return frame
 
     def config_folders(self):
         # Ventana de configuración para seleccionar carpetas
@@ -117,44 +132,102 @@ class HookedDocsApp:
                 return json.load(config_file)
         return {}
 
-    # Funciones independientes para procesar cada tipo de documento
-    def process_facturas_recibidas(self):
-        if not self.facturas_recibidas_path:
-            messagebox.showwarning("Advertencia", "La carpeta para Facturas Recibidas no está configurada.")
-        else:
-            self.run_etl_process(self.facturas_recibidas_path, fun_ir, "Facturas Recibidas")
+    def open_update_window(self, document_type, functionality_number):
+        self.current_document_type = document_type
+        self.current_functionality_number = functionality_number
+        update_window = tk.Toplevel(self.root)
+        update_window.title(f"Actualizar {document_type}")
+        update_window.geometry("600x650")
 
-    def process_facturas_emitidas(self):
-        if not self.facturas_emitidas_path:
-            messagebox.showwarning("Advertencia", "La carpeta para Facturas Emitidas no está configurada.")
-        else:
-            self.run_etl_process(self.facturas_emitidas_path, fun_ii, "Facturas Emitidas")
+        search_label = tk.Label(update_window, text="Número de Factura o Boleta:")
+        search_label.pack(pady=5)
 
-    def process_boletas_fisicas(self):
-        if not self.boletas_fisicas_path:
-            messagebox.showwarning("Advertencia", "La carpeta para Boletas Físicas no está configurada.")
-        else:
-            self.run_etl_process(self.boletas_fisicas_path, fun_pt, "Boletas Físicas")
+        search_entry = tk.Entry(update_window)
+        search_entry.pack(pady=5)
 
-    def process_boletas_electronicas(self):
-        if not self.boletas_electronicas_path:
-            messagebox.showwarning("Advertencia", "La carpeta para Boletas Electrónicas no está configurada.")
-        else:
-            self.run_etl_process(self.boletas_electronicas_path, fun_et, "Boletas Electrónicas")
+        search_button = tk.Button(update_window, text="Buscar", command=lambda: self.search_invoice(search_entry))
+        search_button.pack(pady=5)
 
-    def run_etl_process(self, path, etl_function, document_type):
-        # Mostrar mensaje mientras se realiza el procesamiento
+        self.invoice_data_entries = {}
+
+        # Definir los campos específicos según la funcionalidad
+        fields = []
+        if functionality_number == 1:  # Facturas Recibidas
+            fields = ["Número DTE", "Fecha de Emisión", "Subtotal", "IVA", "Total", "Forma de Pago", "Emisor", "Dirección"]
+        elif functionality_number == 2:  # Facturas Emitidas
+            fields = ["Número DTE", "Fecha de Emisión", "Subtotal", "IVA", "Total", "Forma de Pago", "Cliente", "Dirección"]
+        elif functionality_number == 3:  # Boletas Físicas
+            fields = ["Folio", "Neto", "IVA", "Total", "Fecha", "RUT Vendedor", "Sucursal"]
+        elif functionality_number == 4:  # Boletas Electrónicas
+            fields = ["Tipo Documento", "Folio", "Emisión", "Monto Neto", "Monto Exento", "Monto IVA", "Monto Total"]
+
+        for field in fields:
+            label = tk.Label(update_window, text=field)
+            label.pack(pady=2)
+
+            entry = tk.Entry(update_window, width=50)
+            entry.pack(pady=2)
+            self.invoice_data_entries[field] = entry
+
+        update_button = tk.Button(update_window, text="Actualizar", command=self.update_invoice)
+        update_button.pack(pady=20)
+
+    def search_invoice(self, search_entry):
+        invoice_number = search_entry.get()
+        if not invoice_number:
+            messagebox.showwarning("Advertencia", "Ingrese el número de factura o boleta a buscar.")
+            return
+
         try:
-            print(f"Procesando {document_type} en la carpeta: {path}")
-            messagebox.showinfo("Procesando", f"Procesando {document_type} en la carpeta: {path}")
-            etl_function(path)
-            messagebox.showinfo("Éxito", f"{document_type} procesadas exitosamente.")
+            # Buscar la factura o boleta en la BD
+            invoice_data = read_select_invoice(invoice_number, self.current_functionality_number)
+            if invoice_data:
+                # Rellenar los campos con los datos de la factura o boleta
+                for key, entry in self.invoice_data_entries.items():
+                    entry.delete(0, tk.END)
+                    entry.insert(0, invoice_data.get(key.lower().replace(" ", "_"), ""))
+            else:
+                messagebox.showinfo("Información", "Documento no encontrado.")
         except Exception as e:
-            print(f"Error al procesar {document_type}: {e}")
-            messagebox.showerror("Error", f"Ocurrió un error al procesar {document_type}:\n{str(e)}")
+            messagebox.showerror("Error", f"Ocurrió un error al buscar el documento: {str(e)}")
+
+    def update_invoice(self):
+        updated_data = {key.lower().replace(" ", "_"): entry.get() for key, entry in self.invoice_data_entries.items()}
+
+        try:
+            # Actualizar la factura o boleta en la BD
+            update_selected_invoice(self.current_functionality_number, updated_data)
+            messagebox.showinfo("Éxito", "Documento actualizado correctamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al actualizar el documento: {str(e)}")
+
+    def delete_document(self, document_type, functionality_number):
+        delete_window = tk.Toplevel(self.root)
+        delete_window.title(f"Eliminar {document_type}")
+        delete_window.geometry("400x200")
+
+        delete_label = tk.Label(delete_window, text="Número de Factura o Boleta a eliminar:")
+        delete_label.pack(pady=5)
+
+        delete_entry = tk.Entry(delete_window)
+        delete_entry.pack(pady=5)
+
+        delete_button = tk.Button(delete_window, text="Eliminar", command=lambda: self.perform_delete(functionality_number, delete_entry.get()))
+        delete_button.pack(pady=10)
+
+    def perform_delete(self, functionality_number, invoice_number):
+        if not invoice_number:
+            messagebox.showwarning("Advertencia", "Ingrese el número de factura o boleta a eliminar.")
+            return
+
+        try:
+            # Eliminar la factura o boleta en la BD
+            delete_invoice(functionality_number, invoice_number)
+            messagebox.showinfo("Éxito", "Documento eliminado correctamente.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al eliminar el documento: {str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = HookedDocsApp(root)
-    root.geometry("600x400")
     root.mainloop()
