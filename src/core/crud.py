@@ -55,39 +55,45 @@ def read_invoices(table_name):
     
     return invoices
 
-def read_select_invoice(number, functionalitie):
-    """Leer todas las facturas desde la tabla invoices."""
+def read_select_invoice(doc_number, functionalitie):
+    """Leer una factura o documento específico desde la base de datos."""
+    import datetime
+
     connection = get_connection()
     cursor = connection.cursor()
 
     if functionalitie == 1:
         # Consulta de selección para facturas recibidas
-        select_query = f"""SELECT  
+        select_query = """SELECT  
                             INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
                             TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
                           FROM flat_invoices_received t1
-                          WHERE t1.invoice_number = {number}"""
+                          WHERE t1.invoice_number = :doc_number"""
+        date_fields = ['ISSUE_DATE']
     elif functionalitie == 2:
         # Consulta de selección para facturas emitidas
-        select_query = f"""SELECT 
+        select_query = """SELECT 
                             INVOICE_NUMBER, ISSUE_DATE, SUBTOTAL, 
                             TAX, TOTAL, PAY_METHOD, ISSUER_NAME, ISSUER_ADDRESS
                           FROM flat_invoices_issued t1
-                          WHERE t1.invoice_number = {number}"""
+                          WHERE t1.invoice_number = :doc_number"""
+        date_fields = ['ISSUE_DATE']
     elif functionalitie == 3:
-        # Consulta de selección para boletas electrónicas
-        select_query = f"""SELECT 
-                            TIPO_DOCUMENTO, FOLIO, EMISION, MONTO_NETO, 
-                            MONTO_EXENTO, MONTO_IVA, MONTO_TOTAL
-                          FROM electronic_tickets
-                          WHERE folio = {number}"""
-    elif functionalitie == 4:
         # Consulta de selección para boletas físicas
-        select_query = f"""SELECT 
+        select_query = """SELECT 
                             FOLIO, NETO, IVA, TOTAL, 
                             FECHA, RUT_VENDEDOR, SUCURSAL
                           FROM physical_tickets
-                          WHERE folio = {number}"""
+                          WHERE folio = :doc_number"""
+        date_fields = ['FECHA']
+    elif functionalitie == 4:
+        # Consulta de selección para boletas electrónicas
+        select_query = """SELECT 
+                            TIPO_DOCUMENTO, FOLIO, EMISION, MONTO_NETO, 
+                            MONTO_EXENTO, MONTO_IVA, MONTO_TOTAL
+                          FROM electronic_tickets
+                          WHERE folio = :doc_number"""
+        date_fields = ['EMISION']
     else:
         # Manejo de funcionalidad no reconocida
         cursor.close()
@@ -95,16 +101,23 @@ def read_select_invoice(number, functionalitie):
         return []
 
     # Ejecutar la consulta con parámetros para evitar inyección SQL
-    cursor.execute(select_query, (number,))
+    cursor.execute(select_query, doc_number=doc_number)
     rows = cursor.fetchall()
 
     # Procesar los resultados según la funcionalidad
     invoices = []
     if functionalitie in [1, 2]:
         for row in rows:
+            # Convertir ISSUE_DATE a cadena con formato DD/MM/YYYY
+            issue_date = row[1]
+            if issue_date:
+                issue_date_str = issue_date.strftime('%d/%m/%Y')
+            else:
+                issue_date_str = ''
+
             invoice = {
                 "INVOICE_NUMBER": row[0],
-                "ISSUE_DATE": row[1],
+                "ISSUE_DATE": issue_date_str,
                 "SUBTOTAL": row[2],
                 "TAX": row[3],
                 "TOTAL": row[4],
@@ -115,26 +128,40 @@ def read_select_invoice(number, functionalitie):
             invoices.append(invoice)
     elif functionalitie == 3:
         for row in rows:
-            invoice = {
-                "TIPO_DOCUMENTO": row[0],
-                "FOLIO": row[1],
-                "EMISION": row[2],
-                "MONTO_NETO": row[3],
-                "MONTO_EXENTO": row[4],
-                "MONTO_IVA": row[5],
-                "MONTO_TOTAL": row[6]
-            }
-            invoices.append(invoice)
-    elif functionalitie == 4:
-        for row in rows:
+            # Convertir FECHA a cadena con formato DD/MM/YYYY
+            fecha = row[4]
+            if fecha:
+                fecha_str = fecha.strftime('%d/%m/%Y')
+            else:
+                fecha_str = ''
+
             invoice = {
                 "FOLIO": row[0],
                 "NETO": row[1],
                 "IVA": row[2],
                 "TOTAL": row[3],
-                "FECHA": row[4],
+                "FECHA": fecha_str,
                 "RUT_VENDEDOR": row[5],
                 "SUCURSAL": row[6]
+            }
+            invoices.append(invoice)
+    elif functionalitie == 4:
+        for row in rows:
+            # Convertir EMISION a cadena con formato DD/MM/YYYY
+            emision = row[2]
+            if emision:
+                emision_str = emision.strftime('%d/%m/%Y')
+            else:
+                emision_str = ''
+
+            invoice = {
+                "TIPO_DOCUMENTO": row[0],
+                "FOLIO": row[1],
+                "EMISION": emision_str,
+                "MONTO_NETO": row[3],
+                "MONTO_EXENTO": row[4],
+                "MONTO_IVA": row[5],
+                "MONTO_TOTAL": row[6]
             }
             invoices.append(invoice)
 
@@ -143,6 +170,7 @@ def read_select_invoice(number, functionalitie):
     close_connection(connection)
 
     return invoices
+
 
 # Update
 def update_invoice(invoice_number, new_data, table_name):
@@ -176,14 +204,16 @@ def update_invoice(invoice_number, new_data, table_name):
     cursor.close()
     close_connection(connection)
 
+import datetime
+
 def update_selected_invoice(invoice_number, updated_fields, functionalitie):
     """
     Actualizar campos específicos de una factura existente según la funcionalidad.
-    
+
     Parameters:
     - invoice_number: Número de factura o folio que identifica el registro a actualizar.
     - updated_fields: Diccionario con los campos y sus nuevos valores.
-    - functionalitie: Número que indica la funcionalidad (1: Facturas Recibidas, 2: Facturas Emitidas, 3: Boletas Electrónicas, 4: Boletas Físicas).
+    - functionalitie: Número que indica la funcionalidad (1: Facturas Recibidas, 2: Facturas Emitidas, 3: Boletas Físicas, 4: Boletas Electrónicas).
     """
     connection = get_connection()
     cursor = connection.cursor()
@@ -193,21 +223,25 @@ def update_selected_invoice(invoice_number, updated_fields, functionalitie):
         table_name = 'flat_invoices_received'
         id_field = 'INVOICE_NUMBER'
         valid_fields = ['ISSUE_DATE', 'SUBTOTAL', 'TAX', 'TOTAL', 'PAY_METHOD', 'ISSUER_NAME', 'ISSUER_ADDRESS']
+        date_fields = ['ISSUE_DATE']
     elif functionalitie == 2:
         # Actualización para facturas emitidas
         table_name = 'flat_invoices_issued'
         id_field = 'INVOICE_NUMBER'
         valid_fields = ['ISSUE_DATE', 'SUBTOTAL', 'TAX', 'TOTAL', 'PAY_METHOD', 'ISSUER_NAME', 'ISSUER_ADDRESS']
+        date_fields = ['ISSUE_DATE']
     elif functionalitie == 3:
-        # Actualización para boletas electrónicas
-        table_name = 'electronic_tickets'
-        id_field = 'FOLIO'
-        valid_fields = ['TIPO_DOCUMENTO', 'EMISION', 'MONTO_NETO', 'MONTO_EXENTO', 'MONTO_IVA', 'MONTO_TOTAL']
-    elif functionalitie == 4:
         # Actualización para boletas físicas
         table_name = 'physical_tickets'
         id_field = 'FOLIO'
         valid_fields = ['NETO', 'IVA', 'TOTAL', 'FECHA', 'RUT_VENDEDOR', 'SUCURSAL']
+        date_fields = ['FECHA']
+    elif functionalitie == 4:
+        # Actualización para boletas electrónicas
+        table_name = 'electronic_tickets'
+        id_field = 'FOLIO'
+        valid_fields = ['TIPO_DOCUMENTO', 'EMISION', 'MONTO_NETO', 'MONTO_EXENTO', 'MONTO_IVA', 'MONTO_TOTAL']
+        date_fields = ['EMISION']
     else:
         # Manejo de funcionalidad no reconocida
         cursor.close()
@@ -223,18 +257,42 @@ def update_selected_invoice(invoice_number, updated_fields, functionalitie):
         close_connection(connection)
         return
 
+    # Convertir los campos de fecha a objetos datetime
+    for date_field in date_fields:
+        if date_field in fields_to_update:
+            date_str = fields_to_update[date_field]
+            try:
+                # Intentar detectar el formato de fecha
+                date_obj = None
+                for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y"):
+                    try:
+                        date_obj = datetime.datetime.strptime(date_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+                if date_obj is None:
+                    raise ValueError
+                fields_to_update[date_field] = date_obj
+            except ValueError:
+                # Manejar el error si el formato no es correcto
+                cursor.close()
+                close_connection(connection)
+                raise ValueError(f"Formato de fecha inválido para {date_field}: '{date_str}'. Use un formato válido como 'DD/MM/YYYY'.")
+
     # Construir la parte SET de la consulta
-    set_clause = ', '.join([f"{field} = %s" for field in fields_to_update.keys()])
-    params = list(fields_to_update.values())
-    params.append(invoice_number)
+    set_clause = ', '.join([f"{field} = :{field}" for field in fields_to_update.keys()])
+
+    # Añadir el invoice_number al diccionario de parámetros
+    params = fields_to_update.copy()
+    params['invoice_number'] = invoice_number
 
     # Construir la consulta de actualización
     update_query = f"""
         UPDATE {table_name}
         SET {set_clause}
-        WHERE {id_field} = %s
+        WHERE {id_field} = :invoice_number
     """
-
+    
     # Ejecutar la consulta de actualización con parámetros
     cursor.execute(update_query, params)
 
@@ -245,35 +303,6 @@ def update_selected_invoice(invoice_number, updated_fields, functionalitie):
     cursor.close()
     close_connection(connection)
 
-    """Actualizar campos específicos de una factura existente en la tabla especificada."""
-    connection = get_connection()
-    cursor = connection.cursor()
-    
-    if table_name.upper() == 'INVOICES_ISSUED':
-        invoice_number_json_path = '$.issuer.invoice_number'
-    else:
-        invoice_number_json_path = '$.invoice_number'
-        
-    # Consulta de actualización utilizando JSON_TRANSFORM
-    update_query = f"""
-        UPDATE {table_name}
-        SET invoice_data = JSON_TRANSFORM(invoice_data,
-            SET '$.subtotal' = :new_subtotal,
-            SET '$.tax' = :new_tax,
-            SET '$.total' = :new_total
-        )
-        WHERE JSON_VALUE(invoice_data, '{invoice_number_json_path}') = :invoice_number
-    """
-    
-    # Ejecutar la actualización
-    cursor.execute(update_query, new_subtotal=new_subtotal, new_tax=new_tax, new_total=new_total, invoice_number=invoice_number)
-    
-    # Confirmar los cambios
-    connection.commit()
-    
-    # Cerrar cursor y conexión
-    cursor.close()
-    close_connection(connection)
 
 
 # Delete

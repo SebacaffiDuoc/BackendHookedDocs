@@ -180,24 +180,148 @@ class HookedDocsApp:
 
         try:
             # Buscar la factura o boleta en la BD
-            invoice_data = read_select_invoice(invoice_number, self.current_functionality_number)
-            if invoice_data:
+            invoices = read_select_invoice(invoice_number, self.current_functionality_number)
+            if invoices:
+                # Tomar el primer resultado (asumiendo que hay solo uno)
+                invoice_data = invoices[0]
+
+                # Crear un mapeo entre los nombres de los campos de la GUI y las claves del diccionario
+                if self.current_functionality_number == 1:
+                    key_mapping = {
+                        'Número DTE': 'INVOICE_NUMBER',
+                        'Fecha de Emisión': 'ISSUE_DATE',
+                        'Subtotal': 'SUBTOTAL',
+                        'IVA': 'TAX',
+                        'Total': 'TOTAL',
+                        'Forma de Pago': 'PAY_METHOD',
+                        'Emisor': 'ISSUER_NAME',
+                        'Dirección': 'ISSUER_ADDRESS'
+                    }
+                elif self.current_functionality_number == 2:
+                    key_mapping = {
+                        'Número DTE': 'INVOICE_NUMBER',
+                        'Fecha de Emisión': 'ISSUE_DATE',
+                        'Subtotal': 'SUBTOTAL',
+                        'IVA': 'TAX',
+                        'Total': 'TOTAL',
+                        'Forma de Pago': 'PAY_METHOD',
+                        'Cliente': 'ISSUER_NAME',
+                        'Dirección': 'ISSUER_ADDRESS'
+                    }
+                elif self.current_functionality_number == 3:
+                    key_mapping = {
+                        'Folio': 'FOLIO',
+                        'Neto': 'NETO',
+                        'IVA': 'IVA',
+                        'Total': 'TOTAL',
+                        'Fecha': 'FECHA',
+                        'RUT Vendedor': 'RUT_VENDEDOR',
+                        'Sucursal': 'SUCURSAL'  
+                    }
+                elif self.current_functionality_number == 4:
+                    key_mapping = {
+                        'Tipo Documento': 'TIPO_DOCUMENTO',
+                        'Folio': 'FOLIO',
+                        'Emisión': 'EMISION',
+                        'Monto Neto': 'MONTO_NETO',
+                        'Monto Exento': 'MONTO_EXENTO',
+                        'Monto IVA': 'MONTO_IVA',
+                        'Monto Total': 'MONTO_TOTAL'
+                    }
+                else:
+                    key_mapping = {}
+
                 # Rellenar los campos con los datos de la factura o boleta
-                for key, entry in self.invoice_data_entries.items():
+                for gui_field_name, entry in self.invoice_data_entries.items():
                     entry.delete(0, tk.END)
-                    entry.insert(0, invoice_data.get(key.lower().replace(" ", "_"), ""))
+                    # Obtener la clave correspondiente en el diccionario invoice_data
+                    data_key = key_mapping.get(gui_field_name)
+                    if data_key:
+                        value = invoice_data.get(data_key, "")
+                    else:
+                        value = ""
+                    entry.insert(0, value)
             else:
                 messagebox.showinfo("Información", "Documento no encontrado.")
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al buscar el documento: {str(e)}")
 
     def update_invoice(self):
+        # Obtener los datos actualizados desde la interfaz gráfica
         updated_data = {key.lower().replace(" ", "_"): entry.get() for key, entry in self.invoice_data_entries.items()}
+
+        # Mapeo de claves si es necesario
+        if self.current_functionality_number == 1:
+            # Mapeo para facturas recibidas/emitidas
+            key_mapping = {
+                'Número DTE': 'INVOICE_NUMBER',
+                'Fecha de Emisión': 'ISSUE_DATE',
+                'Subtotal': 'SUBTOTAL',
+                'IVA': 'TAX',
+                'Total': 'TOTAL',
+                'Forma de Pago': 'PAY_METHOD',
+                'Emisor': 'ISSUER_NAME',
+                'Dirección': 'ISSUER_ADDRESS'
+            }
+        elif self.current_functionality_number == 2:
+            key_mapping = {
+                'Número DTE': 'INVOICE_NUMBER',
+                'Fecha de Emisión': 'ISSUE_DATE',
+                'Subtotal': 'SUBTOTAL',
+                'IVA': 'TAX',
+                'Total': 'TOTAL',
+                'Forma de Pago': 'PAY_METHOD',
+                'Cliente': 'ISSUER_NAME',
+                'Dirección': 'ISSUER_ADDRESS'
+            }
+        elif self.current_functionality_number == 3:
+            # Mapeo para boletas físicas
+            key_mapping = {
+                'folio': 'FOLIO',
+                'neto': 'NETO',
+                'iva': 'IVA',
+                'total': 'TOTAL',
+                'fecha': 'FECHA',
+                'rut_vendedor': 'RUT_VENDEDOR',
+                'sucursal': 'SUCURSAL'
+            }
+        elif self.current_functionality_number == 4:
+            # Mapeo para boletas electrónicas
+            key_mapping = {
+                'tipo_de_documento': 'TIPO_DOCUMENTO',
+                'folio': 'FOLIO',
+                'emisión': 'EMISION',
+                'monto_neto': 'MONTO_NETO',
+                'monto_exento': 'MONTO_EXENTO',
+                'monto_iva': 'MONTO_IVA',
+                'monto_total': 'MONTO_TOTAL'
+            }
+        else:
+            messagebox.showerror("Error", "Funcionalidad no reconocida.")
+            return
+
+        # Aplicar el mapeo a los datos actualizados
+        updated_data_mapped = {key_mapping.get(k, k): v for k, v in updated_data.items()}
+
+        # Obtener el número de factura o folio
+        if self.current_functionality_number in [1, 2]:
+            invoice_number = updated_data_mapped.get('INVOICE_NUMBER')
+        elif self.current_functionality_number in [3, 4]:
+            invoice_number = updated_data_mapped.get('FOLIO')
+        else:
+            messagebox.showerror("Error", "Funcionalidad no reconocida.")
+            return
+
+        if not invoice_number:
+            messagebox.showwarning("Advertencia", "El número de factura o folio no está especificado.")
+            return
 
         try:
             # Actualizar la factura o boleta en la BD
-            update_selected_invoice(self.current_functionality_number, updated_data)
+            update_selected_invoice(invoice_number, updated_data_mapped, self.current_functionality_number)
             messagebox.showinfo("Éxito", "Documento actualizado correctamente.")
+        except ValueError as ve:
+            messagebox.showerror("Error", str(ve))
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al actualizar el documento: {str(e)}")
 
