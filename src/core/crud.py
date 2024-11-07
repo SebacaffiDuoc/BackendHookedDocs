@@ -306,18 +306,31 @@ def update_selected_invoice(invoice_number, updated_fields, functionalitie):
 
 
 # Delete
-def delete_invoice(invoice_id,table_name):
+def delete_invoice(functionalitie,invoice_number):
     """Eliminar una factura de la tabla invoices."""
     connection = get_connection()
     cursor = connection.cursor()
     
-    # Consulta de eliminación
-    delete_query = f"""
-        DELETE FROM {table_name} WHERE id = :invoice_id
-    """
+    # Segun funcionabilidad
+    if functionalitie == 1:
+    # Consulta de selección para facturas recibidas
+        delete_query = """delete FROM flat_invoices_received WHERE invoice_number = :invoice_number"""
+    elif functionalitie == 2:
+        # Consulta de selección para facturas emitidas
+        delete_query = """delete FROM flat_invoices_issued  WHERE invoice_number = :invoice_number"""
+    elif functionalitie == 3:
+        # Consulta de selección para boletas físicas
+        delete_query = """delete FROM physical_tickets WHERE folio = :invoice_number"""
+    elif functionalitie == 4:
+        # Consulta de selección para boletas electrónicas
+        delete_query = """delete FROM electronic_tickets WHERE folio = :invoice_number"""
+    else:
+        # Manejo de funcionalidad no reconocida
+        cursor.close()
+        close_connection(connection)
     
     # Ejecutar la eliminación
-    cursor.execute(delete_query, invoice_id=invoice_id)
+    cursor.execute(delete_query, invoice_number=invoice_number)
     
     # Confirmar los cambios
     connection.commit()
