@@ -250,29 +250,29 @@ class HookedDocsApp:
         # Obtener los datos actualizados desde la interfaz gráfica
         updated_data = {key.lower().replace(" ", "_"): entry.get() for key, entry in self.invoice_data_entries.items()}
 
-        # Mapeo de claves si es necesario
+        # Mapeo de claves ajustado para coincidir con updated_data
         if self.current_functionality_number == 1:
             # Mapeo para facturas recibidas/emitidas
             key_mapping = {
-                'Número DTE': 'INVOICE_NUMBER',
-                'Fecha de Emisión': 'ISSUE_DATE',
-                'Subtotal': 'SUBTOTAL',
-                'IVA': 'TAX',
-                'Total': 'TOTAL',
-                'Forma de Pago': 'PAY_METHOD',
-                'Emisor': 'ISSUER_NAME',
-                'Dirección': 'ISSUER_ADDRESS'
+                'número_dte': 'INVOICE_NUMBER',
+                'fecha_de_emisión': 'ISSUE_DATE',
+                'subtotal': 'SUBTOTAL',
+                'iva': 'TAX',
+                'total': 'TOTAL',
+                'forma_de_pago': 'PAY_METHOD',
+                'emisor': 'ISSUER_NAME',
+                'dirección': 'ISSUER_ADDRESS'
             }
         elif self.current_functionality_number == 2:
             key_mapping = {
-                'Número DTE': 'INVOICE_NUMBER',
-                'Fecha de Emisión': 'ISSUE_DATE',
-                'Subtotal': 'SUBTOTAL',
-                'IVA': 'TAX',
-                'Total': 'TOTAL',
-                'Forma de Pago': 'PAY_METHOD',
-                'Cliente': 'ISSUER_NAME',
-                'Dirección': 'ISSUER_ADDRESS'
+                'número_dte': 'INVOICE_NUMBER',
+                'fecha_de_emisión': 'ISSUE_DATE',
+                'subtotal': 'SUBTOTAL',
+                'iva': 'TAX',
+                'total': 'TOTAL',
+                'forma_de_pago': 'PAY_METHOD',
+                'cliente': 'ISSUER_NAME',
+                'dirección': 'ISSUER_ADDRESS'
             }
         elif self.current_functionality_number == 3:
             # Mapeo para boletas físicas
@@ -288,7 +288,7 @@ class HookedDocsApp:
         elif self.current_functionality_number == 4:
             # Mapeo para boletas electrónicas
             key_mapping = {
-                'tipo_de_documento': 'TIPO_DOCUMENTO',
+                'tipo_documento': 'TIPO_DOCUMENTO',
                 'folio': 'FOLIO',
                 'emisión': 'EMISION',
                 'monto_neto': 'MONTO_NETO',
@@ -306,7 +306,9 @@ class HookedDocsApp:
         # Obtener el número de factura o folio
         if self.current_functionality_number in [1, 2]:
             invoice_number = updated_data_mapped.get('INVOICE_NUMBER')
-        elif self.current_functionality_number in [3, 4]:
+        elif self.current_functionality_number == 3:
+            invoice_number = updated_data_mapped.get('FOLIO')
+        elif self.current_functionality_number == 4:
             invoice_number = updated_data_mapped.get('FOLIO')
         else:
             messagebox.showerror("Error", "Funcionalidad no reconocida.")
@@ -324,6 +326,7 @@ class HookedDocsApp:
             messagebox.showerror("Error", str(ve))
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al actualizar el documento: {str(e)}")
+
 
     def delete_document(self, document_type, functionality_number):
         delete_window = tk.Toplevel(self.root)
