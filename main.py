@@ -271,45 +271,47 @@ class HookedDocsApp:
                 # Crear un mapeo entre los nombres de los campos de la GUI y las claves del diccionario
                 if self.current_functionality_number == 1:
                     key_mapping = {
-                        'Número DTE': 'INVOICE_NUMBER',
-                        'Fecha de Emisión': 'ISSUE_DATE',
-                        'Subtotal': 'SUBTOTAL',
-                        'IVA': 'TAX',
-                        'Total': 'TOTAL',
-                        'Forma de Pago': 'PAY_METHOD',
-                        'Emisor': 'ISSUER_NAME',
-                        'Dirección': 'ISSUER_ADDRESS'
+                        'Número Factura': 'invoice_number',
+                        'Nombre Proveedor': 'issuer_name',
+                        'RUT Proveedor': 'issuer_rut',
+                        'Subtotal': 'subtotal',
+                        'Precio Total Items': 'item_total_price',
+                        'IVA': 'tax',
+                        'Total': 'total',
+                        'Método de Pago': 'pay_method'
                     }
                 elif self.current_functionality_number == 2:
                     key_mapping = {
-                        'Número DTE': 'INVOICE_NUMBER',
-                        'Fecha de Emisión': 'ISSUE_DATE',
-                        'Subtotal': 'SUBTOTAL',
-                        'IVA': 'TAX',
-                        'Total': 'TOTAL',
-                        'Forma de Pago': 'PAY_METHOD',
-                        'Cliente': 'ISSUER_NAME',
-                        'Dirección': 'ISSUER_ADDRESS'
+                        'Número Factura': 'invoice_number',
+                        'Nombre Comprador': 'buyer_name',
+                        'RUT Comprador': 'buyer_rut',
+                        'RUT Proveedor': 'issuer_rut',
+                        'Tipo de Factura': 'invoice_type',
+                        'Subtotal': 'subtotal',
+                        'Precio Total Items': 'item_total_price',
+                        'IVA': 'tax',
+                        'Total': 'total',
+                        'Método de Pago': 'pay_method'
                     }
                 elif self.current_functionality_number == 3:
                     key_mapping = {
-                        'Folio': 'FOLIO',
-                        'Neto': 'NETO',
-                        'IVA': 'IVA',
-                        'Total': 'TOTAL',
-                        'Fecha': 'FECHA',
-                        'RUT Vendedor': 'RUT_VENDEDOR',
-                        'Sucursal': 'SUCURSAL'  
+                        'Folio': 'folio',
+                        'Neto': 'neto',
+                        'IVA': 'iva',
+                        'Total': 'total',
+                        'Fecha': 'fecha',
+                        'RUT Vendedor': 'rut_vendedor',
+                        'Sucursal': 'sucursal'  
                     }
                 elif self.current_functionality_number == 4:
                     key_mapping = {
-                        'Tipo Documento': 'TIPO_DOCUMENTO',
-                        'Folio': 'FOLIO',
-                        'Emisión': 'EMISION',
-                        'Monto Neto': 'MONTO_NETO',
-                        'Monto Exento': 'MONTO_EXENTO',
-                        'Monto IVA': 'MONTO_IVA',
-                        'Monto Total': 'MONTO_TOTAL'
+                        'Tipo Documento': 'tipo_documento',
+                        'Folio': 'folio',
+                        'Emisión': 'emision',
+                        'Monto Neto': 'monto_neto',
+                        'Monto Exento': 'monto_exento',
+                        'Monto IVA': 'monto_iva',
+                        'Monto Total': 'monto_total'
                     }
                 else:
                     key_mapping = {}
@@ -323,6 +325,12 @@ class HookedDocsApp:
                         value = invoice_data.get(data_key, "")
                     else:
                         value = ""
+                        
+                    # Asegurarse de que value es una cadena y no None
+                    if value is None:
+                        value = ""
+                    else:
+                        value = str(value)
                     entry.insert(0, value)
             else:
                 messagebox.showinfo("Información", "Documento no encontrado.")
@@ -342,49 +350,50 @@ class HookedDocsApp:
 
         # Mapeo de claves ajustado para coincidir con updated_data
         if self.current_functionality_number == 1:
-            # Mapeo para facturas recibidas/emitidas
             key_mapping = {
-                'número_dte': 'INVOICE_NUMBER',
-                'fecha_de_emisión': 'ISSUE_DATE',
-                'subtotal': 'SUBTOTAL',
-                'iva': 'TAX',
-                'total': 'TOTAL',
-                'forma_de_pago': 'PAY_METHOD',
-                'emisor': 'ISSUER_NAME',
-                'dirección': 'ISSUER_ADDRESS'
+                'número_factura': 'invoice_number',
+                'nombre_proveedor': 'issuer_name',
+                'rut_proveedor': 'issuer_rut',
+                'subtotal': 'subtotal',
+                'precio_total_items': 'item_total_price',
+                'iva': 'tax',
+                'total': 'total',
+                'método_de_pago': 'pay_method'
             }
         elif self.current_functionality_number == 2:
             key_mapping = {
-                'número_dte': 'INVOICE_NUMBER',
-                'fecha_de_emisión': 'ISSUE_DATE',
-                'subtotal': 'SUBTOTAL',
-                'iva': 'TAX',
-                'total': 'TOTAL',
-                'forma_de_pago': 'PAY_METHOD',
-                'cliente': 'ISSUER_NAME',
-                'dirección': 'ISSUER_ADDRESS'
+                'número_factura': 'invoice_number',
+                'nombre_comprador': 'buyer_name',
+                'rut_comprador': 'buyer_rut',
+                'rut_proveedor': 'issuer_rut',
+                'tipo_de_factura': 'invoice_type',
+                'subtotal': 'subtotal',
+                'precio_total_items': 'item_total_price',
+                'iva': 'tax',
+                'total': 'total',
+                'método_de_pago': 'pay_method'
             }
         elif self.current_functionality_number == 3:
-            # Mapeo para boletas físicas
+            # mapeo para boletas físicas
             key_mapping = {
-                'folio': 'FOLIO',
-                'neto': 'NETO',
-                'iva': 'IVA',
-                'total': 'TOTAL',
-                'fecha': 'FECHA',
-                'rut_vendedor': 'RUT_VENDEDOR',
-                'sucursal': 'SUCURSAL'
+                'folio': 'folio',
+                'neto': 'neto',
+                'iva': 'iva',
+                'total': 'total',
+                'fecha': 'fecha',
+                'rut_vendedor': 'rut_vendedor',
+                'sucursal': 'sucursal'
             }
         elif self.current_functionality_number == 4:
-            # Mapeo para boletas electrónicas
+            # mapeo para boletas electrónicas
             key_mapping = {
-                'tipo_documento': 'TIPO_DOCUMENTO',
-                'folio': 'FOLIO',
-                'emisión': 'EMISION',
-                'monto_neto': 'MONTO_NETO',
-                'monto_exento': 'MONTO_EXENTO',
-                'monto_iva': 'MONTO_IVA',
-                'monto_total': 'MONTO_TOTAL'
+                'tipo_documento': 'tipo_documento',
+                'folio': 'folio',
+                'emisión': 'emision',
+                'monto_neto': 'monto_neto',
+                'monto_exento': 'monto_exento',
+                'monto_iva': 'monto_iva',
+                'monto_total': 'monto_total'
             }
         else:
             messagebox.showerror("Error", "Funcionalidad no reconocida.")
@@ -395,11 +404,11 @@ class HookedDocsApp:
 
         # Obtener el número de factura o folio
         if self.current_functionality_number in [1, 2]:
-            invoice_number = updated_data_mapped.get('INVOICE_NUMBER')
+            invoice_number = updated_data_mapped.get('invoice_number')
         elif self.current_functionality_number == 3:
-            invoice_number = updated_data_mapped.get('FOLIO')
+            invoice_number = updated_data_mapped.get('folio')
         elif self.current_functionality_number == 4:
-            invoice_number = updated_data_mapped.get('FOLIO')
+            invoice_number = updated_data_mapped.get('folio')
         else:
             messagebox.showerror("Error", "Funcionalidad no reconocida.")
             return
