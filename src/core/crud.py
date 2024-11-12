@@ -1,6 +1,7 @@
 import json
 import datetime
 import logging
+import oracledb
 from .database import get_connection, close_connection
 
 # Configuración de logging para el seguimiento y depuración
@@ -219,12 +220,13 @@ def update_selected_invoice(connection, invoice_number, updated_fields, function
     cursor.execute(update_query, params)
     logging.info(f"Registro actualizado en {table_name}.")
 
+    logging.info(functionalitie)
     #llamando a auditoria
-    if table_info == 1:
+    if functionalitie == 1:
         cursor.callproc('pkg_received.audit_invoice_received')
-    elif table_info == 2:
+    elif functionalitie == 2:
         cursor.callproc('pkg_issued.audit_invoice_issued')
-    elif table_info in [3,4]:
+    elif functionalitie in [3,4]:
         logging.info(f"Documentos validados previamente.")
     else:
         logging.info(f"funcionabilidad no definida.")
@@ -253,7 +255,24 @@ def delete_invoice(connection, functionalitie, invoice_number):
     cursor.execute(delete_query, invoice_number=invoice_number)
     logging.info(f"Registro eliminado en funcionalidad {functionalitie}.")
 
-    cursor.callproc("PKG_LOG_DEPURATION.FN_LOG_DEPURATION", [invoice_number])
-    logging.info(f"Registro eliminado en tablña de validaciones {invoice_number}.")
+    """Llama a la función FN_LOG_DEPURATION y verifica el resultado."""
+    try:
+        # Llama a la función y espera un resultado de tipo NUMBER
+        result = cursor.callfunc('PKG_LOG_DEPURATION.FN_LOG_DEPURATION', oracledb.NUMBER, [invoice_number])
+        
+        # Verifica el resultado
+        if result == 0:
+            logging.info(f"Depuración exitosa para la factura {invoice_number}.")
+        else:
+            logging.error(f"Error en depuración para la factura {invoice_number}: Resultado inesperado ({result}).")
+    
+    except oracledb.Error as e:
+        # Captura errores de Oracle y los muestra en el log
+        logging.error(f"Error al ejecutar FN_LOG_DEPURATION para la factura {invoice_number}: {e}")
+    except Exception as e:
+        # Captura cualquier otro error y los muestra en el log
+        logging.error(f"Error inesperado al ejecutar FN_LOG_DEPURATION para la factura {invoice_number}: {e}")
 
     cursor.close()
+
+
