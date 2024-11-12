@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import ttkthemes
+from PIL import Image, ImageTk  # Para manejar la imagen del splash
 
 route = os.path.abspath(__file__)
 index_route = route.find("BackendHookedDocs")
@@ -17,7 +18,7 @@ from src.etl.physical_tickets import main as fun_pt
 from src.etl.electronic_tickets import main as fun_et
 from src.etl.invoices_issued import main as fun_ii
 from src.etl.invoices_received import main as fun_ir
-from src.core.crud import read_select_invoice, update_selected_invoice, delete_invoice
+from src.core.crud import read_select_invoice, update_selected_invoice, delete_invoice, read_log
 
 class HookedDocsApp:
     def __init__(self, root):
@@ -52,6 +53,7 @@ class HookedDocsApp:
         self.facturas_emitidas_tab = self.add_tab(notebook, "Facturas Emitidas", 2)
         self.boletas_fisicas_tab = self.add_tab(notebook, "Boletas Físicas", 3)
         self.boletas_electronicas_tab = self.add_tab(notebook, "Boletas Electrónicas", 4)
+        self.logs_tab = self.add_logs_tab(notebook)
 
         # Cargar configuraciones previas si existen
         self.config_data = self.load_config()
@@ -65,6 +67,9 @@ class HookedDocsApp:
         # Variable para almacenar el tipo de documento actual
         self.current_document_type = None
         self.current_functionality_number = None
+
+        # Verificar errores pendientes al iniciar
+        self.check_pending_errors()
 
     def add_tab(self, notebook, title, functionality_number):
         # Crear un Frame para la pestaña
@@ -84,6 +89,49 @@ class HookedDocsApp:
         delete_button.pack(pady=10)
 
         return frame
+    
+    def add_logs_tab(self, notebook):
+        # Crear un Frame para la pestaña de logs
+        frame = ttk.Frame(notebook)
+        notebook.add(frame, text="Logs de Errores")
+
+        # Tabla para mostrar los logs
+        self.logs_tree = ttk.Treeview(frame, columns=("ISSUER_NAME", "PROCESS", "INVOICE_ID", "VALIDATION_MESSAGE"), show="headings")
+        self.logs_tree.heading("ISSUER_NAME", text="Nombre del Emisor")
+        self.logs_tree.heading("PROCESS", text="Proceso DTE")
+        self.logs_tree.heading("INVOICE_ID", text="Nº DTE")
+        self.logs_tree.heading("VALIDATION_MESSAGE", text="Mensaje de Error")
+        
+        # Ajustar el tamaño de cada columna para mejorar la visualización
+        self.logs_tree.column("ISSUER_NAME", width=150)
+        self.logs_tree.column("PROCESS", width=120)
+        self.logs_tree.column("INVOICE_ID", width=70)
+        self.logs_tree.column("VALIDATION_MESSAGE", width=400)
+
+        self.logs_tree.pack(expand=True, fill='both', padx=10, pady=10)
+
+        # Cargar los logs al iniciar
+        self.load_logs()
+
+        return frame
+
+    def load_logs(self):
+        # Limpiar la tabla antes de cargar nuevos datos
+        for item in self.logs_tree.get_children():
+            self.logs_tree.delete(item)
+
+        # Leer los logs desde la base de datos
+        logs = read_log()
+        for log in logs:
+            # Insertar cada log en la tabla con sus valores correspondientes
+            self.logs_tree.insert("", "end", values=(log["ISSUER_NAME"], log["PROCESS"], log["INVOICE_ID"], log["VALIDATION_MESSAGE"]))
+
+
+    def check_pending_errors(self):
+        # Verificar si hay errores pendientes
+        logs = read_log()
+        if logs:
+            messagebox.showwarning("Errores Pendientes", f"Hay {len(logs)} errores pendientes por revisar.")
 
     def config_folders(self):
         # Ventana de configuración para seleccionar carpetas
@@ -190,9 +238,9 @@ class HookedDocsApp:
         # Definir los campos específicos según la funcionalidad
         fields = []
         if functionality_number == 1:  # Facturas Recibidas
-            fields = ["Número Factura", "Nombre Proveedor", "RUT Proveedor", "Subtotal", "Precio Total Items", "IVA", "Total", "Método de Pago"]
+            fields = ["Número Factura", "Nombre Proveedor", "RUT Proveedor", "Subtotal", "IVA", "Total", "Método de Pago"]
         elif functionality_number == 2:  # Facturas Emitidas
-            fields = ["Número Factura", "Nombre Comprador", "RUT Comprador", "RUT Proveedor", "Tipo de Factura", "Subtotal", "Precio Total Items", "IVA", "Total", "Método de Pago"]
+            fields = ["Número Factura", "Nombre Comprador", "RUT Comprador", "RUT Proveedor", "Tipo de Factura", "Subtotal", "IVA", "Total", "Método de Pago"]
         elif functionality_number == 3:  # Boletas Físicas
             fields = ["Folio", "RUT Vendedor", "Sucursal", "Fecha", "Neto", "IVA", "Total"]
         elif functionality_number == 4:  # Boletas Electrónicas
@@ -228,6 +276,7 @@ class HookedDocsApp:
             progress_window.destroy()
 
             messagebox.showinfo("Éxito", f"{document_type} procesadas exitosamente.")
+            self.load_logs()  # Actualizar los logs después de eliminar
         except Exception as e:
             print(f"Error al procesar {document_type}: {e}")
             messagebox.showerror("Error", f"Ocurrió un error al procesar {document_type}:{str(e)}")
@@ -275,7 +324,6 @@ class HookedDocsApp:
                         'Nombre Proveedor': 'issuer_name',
                         'RUT Proveedor': 'issuer_rut',
                         'Subtotal': 'subtotal',
-                        'Precio Total Items': 'item_total_price',
                         'IVA': 'tax',
                         'Total': 'total',
                         'Método de Pago': 'pay_method'
@@ -288,7 +336,6 @@ class HookedDocsApp:
                         'RUT Proveedor': 'issuer_rut',
                         'Tipo de Factura': 'invoice_type',
                         'Subtotal': 'subtotal',
-                        'Precio Total Items': 'item_total_price',
                         'IVA': 'tax',
                         'Total': 'total',
                         'Método de Pago': 'pay_method'
@@ -355,7 +402,6 @@ class HookedDocsApp:
                 'nombre_proveedor': 'issuer_name',
                 'rut_proveedor': 'issuer_rut',
                 'subtotal': 'subtotal',
-                'precio_total_items': 'item_total_price',
                 'iva': 'tax',
                 'total': 'total',
                 'método_de_pago': 'pay_method'
@@ -368,7 +414,6 @@ class HookedDocsApp:
                 'rut_proveedor': 'issuer_rut',
                 'tipo_de_factura': 'invoice_type',
                 'subtotal': 'subtotal',
-                'precio_total_items': 'item_total_price',
                 'iva': 'tax',
                 'total': 'total',
                 'método_de_pago': 'pay_method'
@@ -421,6 +466,8 @@ class HookedDocsApp:
             # Actualizar la factura o boleta en la BD
             update_selected_invoice(invoice_number, updated_data_mapped, self.current_functionality_number)
             messagebox.showinfo("Éxito", "Documento actualizado correctamente.")
+            self.clear_invoice_entries()
+            self.load_logs() 
         except ValueError as ve:
             messagebox.showerror("Error", str(ve))
         except Exception as e:
@@ -455,11 +502,59 @@ class HookedDocsApp:
             messagebox.showinfo("Éxito", "Documento eliminado correctamente.")
             # Limpiar el campo de entrada del número de DTE
             delete_entry.delete(0, tk.END)
+            self.load_logs()  # Actualizar los logs después de eliminar
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al eliminar el documento: {str(e)}")
 
 
 if __name__ == "__main__":
+    # Crear la ventana de splash
+    splash_root = tk.Tk()
+    splash_root.overrideredirect(True)  # Quitar la barra de título
+
+    # Obtener el tamaño de la pantalla y la imagen del splash
+    screen_width = splash_root.winfo_screenwidth()
+    screen_height = splash_root.winfo_screenheight()
+    splash_image = Image.open("assets/splash.png")
+    splash_photo = ImageTk.PhotoImage(splash_image)
+
+    # Obtener el tamaño de la imagen del splash
+    splash_width = splash_photo.width()
+    splash_height = splash_photo.height()
+
+    # Calcular la posición x e y para centrar el splash
+    splash_x = int((screen_width / 2) - (splash_width / 2))
+    splash_y = int((screen_height / 2) - (splash_height / 2))
+
+    # Establecer la geometría de la ventana de splash centrada
+    splash_root.geometry(f"{splash_width}x{splash_height}+{splash_x}+{splash_y}")
+
+    # Crear un label para mostrar la imagen
+    splash_label = tk.Label(splash_root, image=splash_photo)
+    splash_label.pack()
+
+    # Mostrar la ventana de splash durante 3 segundos
+    splash_root.after(3000, splash_root.destroy)
+    splash_root.mainloop()
+
+    # Luego de cerrar el splash, iniciar la aplicación principal
     root = tk.Tk()
+
+    # Obtener el tamaño de la pantalla y el tamaño de la ventana principal
+    root.update_idletasks()  # Asegurarse de que la ventana principal está actualizada
+    main_width = 800
+    main_height = 300
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Calcular la posición x e y para centrar la ventana principal
+    main_x = int((screen_width / 2) - (main_width / 2))
+    main_y = int((screen_height / 2) - (main_height / 2))
+
+    # Establecer la geometría de la ventana principal centrada
+    root.geometry(f"{main_width}x{main_height}+{main_x}+{main_y}")
+
+    # Crear la instancia de la aplicación principal
     app = HookedDocsApp(root)
     root.mainloop()
+
