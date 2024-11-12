@@ -218,6 +218,17 @@ def update_selected_invoice(connection, invoice_number, updated_fields, function
 
     cursor.execute(update_query, params)
     logging.info(f"Registro actualizado en {table_name}.")
+
+    #llamando a auditoria
+    if table_info == 1:
+        cursor.callproc('pkg_received.audit_invoice_received')
+    elif table_info == 2:
+        cursor.callproc('pkg_issued.audit_invoice_issued')
+    elif table_info in [3,4]:
+        logging.info(f"Documentos validados previamente.")
+    else:
+        logging.info(f"funcionabilidad no definida.")
+
     cursor.close()
 
 
@@ -241,4 +252,8 @@ def delete_invoice(connection, functionalitie, invoice_number):
 
     cursor.execute(delete_query, invoice_number=invoice_number)
     logging.info(f"Registro eliminado en funcionalidad {functionalitie}.")
+
+    cursor.callproc("PKG_LOG_DEPURATION.FN_LOG_DEPURATION", [invoice_number])
+    logging.info(f"Registro eliminado en tablña de validaciones {invoice_number}.")
+
     cursor.close()
