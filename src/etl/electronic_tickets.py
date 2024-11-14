@@ -66,6 +66,7 @@ def load(data):
     - data: El DataFrame con los datos procesados de la factura.
     """
     create_electronic_tickets(data)
+    count_total_items_warning(4)
     print(data.head())
 
 def move_to_processed(file_path, base_path):

@@ -68,6 +68,7 @@ def load(data):
     """
     create_physical_tickets(data)
     #print(data.head())
+    count_total_items_warning(2)
 
 def move_to_processed(file_path, base_path):
     """
