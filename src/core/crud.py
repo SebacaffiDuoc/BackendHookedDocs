@@ -275,4 +275,29 @@ def delete_invoice(connection, functionalitie, invoice_number):
 
     cursor.close()
 
+# CONTEO DE REGISTROS Y VALIDACIONES
+@with_connection
+def count_total_items_warning(connection, functionalitie):
+    cursor = connection.cursor()
 
+    if not functionalitie:
+        logging.error("Funcionalidad no reconocida para eliminación.")
+        cursor.close()
+        return
+
+    """Llama a la función FN_LOG_DEPURATION y verifica el resultado."""
+    try:
+        # Llama a la función y espera un resultado de tipo NUMBER
+        result = cursor.callfunc('PKG_LOG_DEPURATION.FN_REGISTER_AUDIT_LOG', oracledb.NUMBER, [functionalitie])
+        
+        # Verifica el resultado
+        print(result)
+    
+    except oracledb.Error as e:
+        # Captura errores de Oracle y los muestra en el log
+        logging.error(f"Error al ejecutar FN_REGISTER_AUDIT_LOG para la factura : {e}")
+    except Exception as e:
+        # Captura cualquier otro error y los muestra en el log
+        logging.error(f"Error inesperado al ejecutar FN_REGISTER_AUDIT_LOG para la factura : {e}")
+
+    cursor.close()
