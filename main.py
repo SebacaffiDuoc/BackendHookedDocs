@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import ttkthemes
+from plyer import notification
 from PIL import Image, ImageTk
 
 route = os.path.abspath(__file__)
@@ -73,7 +74,6 @@ class HookedDocsApp:
         # Verificar errores pendientes al iniciar
         self.check_pending_errors()
 
-
     def add_tab(self, notebook, title, functionality_number):
         # Crear un Frame para la pestaña
         frame = ttk.Frame(notebook)
@@ -93,7 +93,6 @@ class HookedDocsApp:
 
         return frame
     
-
     def add_logs_tab(self, notebook):
         # Crear un Frame para la pestaña de logs
         frame = ttk.Frame(notebook)
@@ -119,7 +118,6 @@ class HookedDocsApp:
 
         return frame
 
-
     def load_logs(self):
         # Limpiar la tabla antes de cargar nuevos datos
         for item in self.logs_tree.get_children():
@@ -131,19 +129,17 @@ class HookedDocsApp:
             # Insertar cada log en la tabla con sus valores correspondientes
             self.logs_tree.insert("", "end", values=(log["ISSUER_NAME"], log["PROCESS"], log["INVOICE_ID"], log["VALIDATION_MESSAGE"]))
 
-
     def check_pending_errors(self):
         # Verificar si hay errores pendientes
         logs = read_log()
         if logs:
             messagebox.showwarning("Errores Pendientes", f"Hay {len(logs)} errores pendientes por revisar.")
 
-
     def config_folders(self):
         # Ventana de configuración para seleccionar carpetas
         config_window = tk.Toplevel(self.root)
         config_window.title("Configuración de Carpetas")
-        config_window.geometry("630x230")
+        config_window.geometry("630x250")
 
         self.entries = {}
 
@@ -161,37 +157,43 @@ class HookedDocsApp:
             # Cargar valores previos si existen o asignar un valor vacío
             entry.insert(0, self.config_data.get(func, ""))
 
-            button = ttk.Button(config_window, text="Seleccionar", command=lambda e=entry: self.select_folder(e))
+            button = ttk.Button(config_window, text="Seleccionar", command=lambda e=entry, key=func: self.select_folder(e, key))
             button.grid(row=index, column=2, padx=10, pady=5)
 
         # Botón para guardar configuraciones
         save_button = ttk.Button(config_window, text="Guardar", command=self.save_config)
         save_button.grid(row=len(functionalities), column=1, pady=20)
 
-
-    def select_folder(self, entry):
+    def select_folder(self, entry, key):
         # Abrir diálogo para seleccionar la carpeta
         folder_selected = filedialog.askdirectory()
         if folder_selected:
             entry.delete(0, tk.END)
             entry.insert(0, folder_selected)
-
+            # Actualizar el valor en config_data
+            self.config_data[key] = folder_selected
 
     def save_config(self):
         # Recopilar datos de las entradas y guardarlos en un archivo JSON
-        config_data = {
-            "Facturas Recibidas": self.facturas_recibidas_path,
-            "Facturas Emitidas": self.facturas_emitidas_path,
-            "Boletas Físicas": self.boletas_fisicas_path,
-            "Boletas Electrónicas": self.boletas_electronicas_path,
-            "theme": self.current_theme  # Guardar el tema actual
-        }
+        self.config_data.update({
+            "Facturas Recibidas": self.entries["Facturas Recibidas"].get(),
+            "Facturas Emitidas": self.entries["Facturas Emitidas"].get(),
+            "Boletas Físicas": self.entries["Boletas Físicas"].get(),
+            "Boletas Electrónicas": self.entries["Boletas Electrónicas"].get(),
+            "theme": self.current_theme
+        })
 
+        # Guardar la configuración en el archivo JSON
         with open("config.json", "w") as config_file:
-            json.dump(config_data, config_file, indent=4)
+            json.dump(self.config_data, config_file, indent=4)
+
+        # Actualizar las rutas de carpetas en las variables correspondientes
+        self.facturas_recibidas_path = self.config_data.get("Facturas Recibidas", "")
+        self.facturas_emitidas_path = self.config_data.get("Facturas Emitidas", "")
+        self.boletas_fisicas_path = self.config_data.get("Boletas Físicas", "")
+        self.boletas_electronicas_path = self.config_data.get("Boletas Electrónicas", "")
 
         messagebox.showinfo("Guardado", "Las configuraciones se han guardado correctamente.")
-
 
     def load_config(self):
         # Cargar configuraciones previas si existe el archivo config.json
@@ -199,7 +201,6 @@ class HookedDocsApp:
             with open("config.json", "r") as config_file:
                 return json.load(config_file)
         return {}
-    
 
     def select_theme_window(self):
         # Ventana para seleccionar el tema
@@ -217,7 +218,6 @@ class HookedDocsApp:
         apply_button = ttk.Button(theme_window, text="Aplicar", command=lambda: self.apply_theme(theme_combobox.get()))
         apply_button.pack(pady=10)
 
-
     def apply_theme(self, theme_name):
         if theme_name in self.available_themes:
             self.style.set_theme(theme_name)
@@ -228,13 +228,12 @@ class HookedDocsApp:
         else:
             messagebox.showwarning("Error", f"El tema '{theme_name}' no está disponible.")
 
-
     def open_update_window(self, document_type, functionality_number):
         self.current_document_type = document_type
         self.current_functionality_number = functionality_number
         update_window = tk.Toplevel(self.root)
         update_window.title(f"Actualizar {document_type}")
-        update_window.geometry("600x800")
+        update_window.geometry("600x650")
 
         search_label = ttk.Label(update_window, text="Número de Factura o Boleta:")
         search_label.pack(pady=5)
@@ -269,8 +268,20 @@ class HookedDocsApp:
         update_button = ttk.Button(update_window, text="Actualizar", command=self.update_invoice)
         update_button.pack(pady=20)
 
-
     def run_etl_process(self, path, etl_function, document_type):
+        # Validar si hay archivos en la carpeta antes de comenzar
+        if not os.listdir(path):
+            # Mostrar mensaje si no hay archivos para procesar
+            messagebox.showinfo("Sin Archivos", f"No hay archivos en la carpeta {document_type} para procesar.")
+            return
+
+        # Notificar al usuario que se ha iniciado el procesamiento de archivos
+        notification.notify(
+            title="Procesamiento Iniciado",
+            message=f"Se ha iniciado el procesamiento de {document_type}.",
+            timeout=5  # La notificación desaparecerá después de 5 segundos
+        )
+
         # Mostrar mensaje mientras se realiza el procesamiento
         try:
             progress_window = tk.Toplevel(self.root)
@@ -283,17 +294,27 @@ class HookedDocsApp:
             progress_bar.start()
 
             self.root.update()
-            etl_function(path)
+
+            # Ejecutar la función de procesamiento (ETL)
+            processed_count = etl_function(path)  # Suponiendo que esta función devuelve la cantidad de archivos procesados
 
             progress_bar.stop()
             progress_window.destroy()
 
-            messagebox.showinfo("Éxito", f"{document_type} procesadas exitosamente.")
+            # Mostrar el mensaje de éxito con la cantidad de archivos procesados
+            messagebox.showinfo("Éxito", f"{document_type} procesadas exitosamente. Total de archivos procesados: {processed_count}")
+
+            # Mostrar la notificación del sistema
+            notification.notify(
+                title="Proceso Completado",
+                message=f"{document_type} procesadas exitosamente. Total de archivos procesados: {processed_count}",
+                timeout=5  # La notificación desaparecerá después de 5 segundos
+            )
+
             self.load_logs()  # Actualizar los logs después de eliminar
         except Exception as e:
             print(f"Error al procesar {document_type}: {e}")
             messagebox.showerror("Error", f"Ocurrió un error al procesar {document_type}:{str(e)}")
-
 
     def process_documents(self, document_type):
         path = None
@@ -317,7 +338,6 @@ class HookedDocsApp:
             return
 
         self.run_etl_process(path, etl_function, document_type)
-
 
     def search_invoice(self, search_entry):
         invoice_number = search_entry.get()
@@ -401,12 +421,10 @@ class HookedDocsApp:
             messagebox.showerror("Error", f"Ocurrió un error al buscar el documento: {str(e)}")
             self.clear_invoice_entries()
 
-
     def clear_invoice_entries(self):
         # Limpiar todos los campos de entrada en el formulario
         for entry in self.invoice_data_entries.values():
             entry.delete(0, tk.END)
-
 
     def update_invoice(self):
         # Obtener los datos actualizados desde la interfaz gráfica
@@ -490,7 +508,6 @@ class HookedDocsApp:
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un error al actualizar el documento: {str(e)}")
 
-
     def delete_document(self, document_type, functionality_number):
         delete_window = tk.Toplevel(self.root)
         delete_window.title(f"Eliminar {document_type}")
@@ -505,7 +522,6 @@ class HookedDocsApp:
         # Cambiar el botón para que pase delete_entry como objeto
         delete_button = ttk.Button(delete_window, text="Eliminar", command=lambda: self.perform_delete(functionality_number, delete_entry))
         delete_button.pack(pady=10)
-
 
     def perform_delete(self, functionality_number, delete_entry):
         # Obtener el valor del campo de entrada
