@@ -114,7 +114,7 @@ Este proyecto está bajo la Licencia MIT. Para más detalles, consulta el archiv
 
 Desarrollado por Sebastián Caffi / Valentina Corales / Malcom Pozo.
 
-Correo: se.caffi@duouc.cl
+Correos: se.caffi@duouc.cl / va.corales@duocuc.cl / mal.pozo@duocuc.cl
 
 ![Logo](https://elsenuelo.cl/web/wp-content/themes/elsenuelo/img/logo-elsenuelo-2023.png?v=2) 
 ![Logo](https://www.duoc.cl/wp-content/themes/wordpress-duoc-cl/images/logo-duoc.svg)
