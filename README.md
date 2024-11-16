@@ -1,7 +1,5 @@
 # HookedDocs - Procesamiento de Documentos
 
-![Logo](https://elsenuelo.cl/web/wp-content/themes/elsenuelo/img/logo-elsenuelo-2023.png?v=2)  <!-- Si tienes un logo, puedes colocarlo aquí -->
-
 ## Descripción del Proyecto
 
 **HookedDocs** es una herramienta desarrollada en Python para la gestión automatizada de documentos de facturación, incluyendo Facturas Recibidas, Facturas Emitidas, Boletas Físicas y Electrónicas. La aplicación se especializa en procesar documentos de diversos tipos mediante procesos ETL (Extracción, Transformación, y Carga) y ofrece una interfaz amigable para la actualización, eliminación y revisión de errores en los documentos procesados.
@@ -117,3 +115,5 @@ Este proyecto está bajo la Licencia MIT. Para más detalles, consulta el archiv
 Desarrollado por Sebastián Caffi / Valentina Corales / Malcom Pozo.
 
 Correo: se.caffi@duouc.cl
+
+![Logo](https://elsenuelo.cl/web/wp-content/themes/elsenuelo/img/logo-elsenuelo-2023.png?v=2) 
