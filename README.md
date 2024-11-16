@@ -1,6 +1,6 @@
 # HookedDocs - Procesamiento de Documentos
 
-![Logo](assets/icon.png)  <!-- Si tienes un logo, puedes colocarlo aquí -->
+![Logo](https://elsenuelo.cl/web/wp-content/themes/elsenuelo/img/logo-elsenuelo-2023.png?v=2)  <!-- Si tienes un logo, puedes colocarlo aquí -->
 
 ## Descripción del Proyecto
 
@@ -12,7 +12,7 @@ El objetivo principal de **HookedDocs** es simplificar y automatizar el manejo d
 
 - **Procesamiento de Documentos**: Capacidad para procesar facturas y boletas de diferentes tipos.
 - **Logs de Errores**: Visualización de los errores durante el procesamiento en una pestaña dedicada.
-- **Interfaz Moderna**: Utiliza `ttkthemes` para ofrecer una experiencia visual amigable y moderna.
+- **Interfaz Moderna**: Utiliza `tkinter` y `ttkthemes` para ofrecer una experiencia visual amigable y moderna.
 - **Temas Personalizables**: Posibilidad de elegir entre varios temas visuales.
 - **Splash Screen**: Pantalla de bienvenida antes de la carga del programa.
 - **CRUD Completo**: Funcionalidades completas para Crear, Leer, Actualizar y Eliminar registros.
@@ -21,10 +21,16 @@ El objetivo principal de **HookedDocs** es simplificar y automatizar el manejo d
 
 - Python 3.10 o superior
 - Dependencias Python:
-  - `ttkthemes`
-  - `tkinter`
-  - `Pillow`
-  - `PyInstaller` (para crear el ejecutable)
+   -`Pillow`
+   -`pandas`
+   -`openpyxl`
+   -`xlrd`
+   -`oracledb`
+   -`pdfplumber`
+   -`python-dotenv`
+   -`ttkthemes`
+   -`cryptography`
+   -`plyer`
 - Sistema Operativo:
   - Windows (Recomendado para el uso del ejecutable)
 
@@ -35,7 +41,7 @@ El objetivo principal de **HookedDocs** es simplificar y automatizar el manejo d
 1. **Clonar el Repositorio**
 
    ```bash
-   git clone https://github.com/tu_usuario/HookedDocs.git
+   git clone https://github.com/SebacaffiDuoc/BackendHookedDocs
    cd HookedDocs
    ```
 
@@ -44,9 +50,12 @@ El objetivo principal de **HookedDocs** es simplificar y automatizar el manejo d
    Se recomienda crear un entorno virtual antes de instalar las dependencias:
 
    ```bash
-   python -m venv venv
+   python3 -m venv venv      # Para Linux/Mac
    source venv/bin/activate  # Para Linux/Mac
+
+   python -m venv venv       # Para Windows
    venv\Scripts\activate     # Para Windows
+
    pip install -r requirements.txt
    ```
 
@@ -57,16 +66,6 @@ Para ejecutar la aplicación, simplemente ejecuta:
 ```bash
 python main.py
 ```
-
-### Crear un Ejecutable (Windows)
-
-Si deseas crear un archivo ejecutable para Windows, usa PyInstaller como se describe en la sección anterior:
-
-```bash
-pyinstaller --onefile --windowed --icon=assets/icon.ico HookedDocs.spec
-```
-
-El archivo ejecutable se generará en la carpeta `dist/`.
 
 ## Uso de la Aplicación
 
@@ -115,6 +114,6 @@ Este proyecto está bajo la Licencia MIT. Para más detalles, consulta el archiv
 
 ## Contacto
 
-Desarrollado por [Tu Nombre].
+Desarrollado por Sebastián Caffi / Valentina Corales / Malcom Pozo.
 
-Correo: [tu_email@dominio.com]
+Correo: se.caffi@duouc.cl
