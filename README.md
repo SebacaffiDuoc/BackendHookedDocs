@@ -117,3 +117,4 @@ Desarrollado por Sebastián Caffi / Valentina Corales / Malcom Pozo.
 Correo: se.caffi@duouc.cl
 
 ![Logo](https://elsenuelo.cl/web/wp-content/themes/elsenuelo/img/logo-elsenuelo-2023.png?v=2) 
+![Logo](https://www.duoc.cl/wp-content/themes/wordpress-duoc-cl/images/logo-duoc.svg)
