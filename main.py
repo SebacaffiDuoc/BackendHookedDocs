@@ -25,8 +25,8 @@ class HookedDocsApp:
     def __init__(self, root):
         self.root = root
         self.root.title("HookedDocs - Procesamiento de Documentos")
-        icon_path = os.path.join(local_path, "assets", "icon.ico")
-        self.root.iconbitmap(icon_path)
+        #icon_path = os.path.join(local_path, "assets", "icon.ico")
+        #self.root.iconbitmap(icon_path)
 
         # Cargar configuraciones previas si existen
         self.config_data = self.load_config()

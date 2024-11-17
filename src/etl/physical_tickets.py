@@ -90,6 +90,7 @@ def main(physical_tickets_path):
     
     # Etapa de extracción: leer todos los archivos Excel de la carpeta
     extracted_data_list = extract(physical_tickets_path)
+    processed_count = 0  # Inicializa el contador
 
     for data, file_path in extracted_data_list:
         # Etapa de transformación: normaliza el DataFrame
@@ -100,3 +101,6 @@ def main(physical_tickets_path):
 
         # Mover el archivo a la carpeta "PROCESADOS" después de procesarlo
         move_to_processed(file_path, physical_tickets_path)
+        processed_count += 1  # Incrementa el contador por cada archivo movido
+
+    return processed_count
