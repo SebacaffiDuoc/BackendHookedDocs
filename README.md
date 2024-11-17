@@ -106,13 +106,9 @@ Las contribuciones son siempre bienvenidas. Por favor, sigue los siguientes paso
 4. **Push** a la rama (`git push origin feature/AmazingFeature`).
 5. **Crea un Pull Request**.
 
-## Licencia
-
-Este proyecto está bajo la Licencia MIT. Para más detalles, consulta el archivo `LICENSE`.
-
 ## Contacto
 
-Desarrollado por Sebastián Caffi / Valentina Corales / Malcom Pozo.
+Desarrollado por: Sebastián Caffi / Valentina Corales / Malcom Pozo.
 
 Correos: se.caffi@duouc.cl / va.corales@duocuc.cl / mal.pozo@duocuc.cl
 
