@@ -13,7 +13,7 @@ global_route = os.path.join(local_path, "src")
 
 sys.path.append(global_route)
 
-from core.crud import create_invoice, count_total_items_warning
+from core.crud import create_invoice
 
 def extract(path_invoices):
     """
@@ -556,7 +556,6 @@ def load(data):
     """
     # Ejemplo de carga de datos en la base de datos (crear una nueva factura)
     create_invoice(data, 'invoices_received')
-    count_total_items_warning(1)
     
 def move_to_processed(file_path, path_invoices):
     """

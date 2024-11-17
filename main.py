@@ -279,7 +279,7 @@ class HookedDocsApp:
         notification.notify(
             title="Procesamiento Iniciado",
             message=f"Se ha iniciado el procesamiento de {document_type}.",
-            timeout=5  # La notificación desaparecerá después de 5 segundos
+            timeout=5
         )
 
         # Mostrar mensaje mientras se realiza el procesamiento
@@ -307,11 +307,12 @@ class HookedDocsApp:
             # Mostrar la notificación del sistema
             notification.notify(
                 title="Proceso Completado",
-                message=f"{document_type} procesadas exitosamente. Total de archivos procesados: {processed_count}",
-                timeout=5  # La notificación desaparecerá después de 5 segundos
+                message=f"Procesamiento de {document_type} realizado con éxito.",
+                timeout=5 
             )
 
-            self.load_logs()  # Actualizar los logs después de eliminar
+            self.load_logs()
+            self.check_pending_errors()
         except Exception as e:
             print(f"Error al procesar {document_type}: {e}")
             messagebox.showerror("Error", f"Ocurrió un error al procesar {document_type}:{str(e)}")

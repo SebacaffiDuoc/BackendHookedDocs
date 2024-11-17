@@ -279,7 +279,6 @@ def load(data):
     - data: El diccionario con los datos procesados de la factura.
     """
     create_invoice(data, 'invoices_issued')
-    count_total_items_warning(2)
     # Puedes descomentar la siguiente línea si deseas imprimir los datos cargados
     # print(data)
 
