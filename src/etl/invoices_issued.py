@@ -21,6 +21,8 @@ def extract(path_invoices):
     Parámetros:
     - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
     """
+    processed_count = 0  # Inicializa el contador
+
     for file in os.listdir(path_invoices):
         if file.endswith(".pdf"):
             file_path = os.path.join(path_invoices, file)
@@ -39,8 +41,11 @@ def extract(path_invoices):
                 
                 # Mover archivo a la carpeta "PROCESADOS" después de procesarlo
                 move_to_processed(file_path, path_invoices)
+                processed_count += 1  # Incrementa el contador tras mover el archivo
             except Exception as e:
                 print(f"Error al procesar el archivo {file}: {e}")
+
+    return processed_count  # Retorna el número de archivos procesados
 
 def transform(extracted_text):
     """
@@ -298,5 +303,7 @@ def move_to_processed(file_path, path_invoices):
 def main(invoices_issued_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
+    Retorna el número de archivos procesados
     """
-    extract(invoices_issued_path)
+    processed_count = extract(invoices_issued_path)
+    return processed_count  

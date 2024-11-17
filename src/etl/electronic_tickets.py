@@ -87,8 +87,9 @@ def main(electronic_tickets_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
     """
-        # Etapa de extracción: leer todos los archivos Excel de la carpeta
+    # Etapa de extracción: leer todos los archivos Excel de la carpeta
     extracted_data_list = extract(electronic_tickets_path)
+    processed_count = 0  # Inicializa el contador
 
     for data, file_path in extracted_data_list:
         # Etapa de transformación: normaliza el DataFrame
@@ -99,4 +100,7 @@ def main(electronic_tickets_path):
 
         # Mover el archivo a la carpeta "PROCESADOS" después de procesarlo
         move_to_processed(file_path, electronic_tickets_path)
+        processed_count += 1  # Incrementa el contador por cada archivo movido
+
+    return processed_count
     
