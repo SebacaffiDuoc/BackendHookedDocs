@@ -46,6 +46,10 @@ def transform(data):
     Retorna:
     - DataFrame transformado con los datos necesarios.
     """
+    tarjetas_aceptadas = ['VISA', 'MASTERCARD', 'AMEX', 'AMERICAN EXPRESS', 'DISCOVER']
+
+    data = data[data['TARJETA'].isin(tarjetas_aceptadas)]
+
     data = data.drop(['impuestos', 'fecha_intercambio', 'estado_intercambio', 'informacion_intercambio', 
                       'estado_reclamo_mercaderia', 'uri', 'referencias', 'indservicio', 'condicion_pago', 
                       'tipofactesp', 'rutusuarioemisor', 'fecha_vencimiento', 'fecha_reclamo_mercaderia', 

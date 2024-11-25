@@ -37,6 +37,9 @@ def extract(tickets_path):
     return extracted_data
 
 def transform(data):
+
+    data = data[data['TARJETA'] == 'None']
+
     # Renombrar columnas para evitar caracteres especiales
     column_mapping = {
         'Nº Documento': 'numero_documento',

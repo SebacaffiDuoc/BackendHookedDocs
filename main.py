@@ -24,7 +24,7 @@ from src.core.crud import read_select_invoice, update_selected_invoice, delete_i
 class HookedDocsApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("HookedDocs - Procesamiento de Documentos")
+        self.root.title("HookedDocs - Herramienta de Depuración")
         #icon_path = os.path.join(local_path, "assets", "icon.ico")
         #self.root.iconbitmap(icon_path)
 
@@ -96,7 +96,7 @@ class HookedDocsApp:
     def add_logs_tab(self, notebook):
         # Crear un Frame para la pestaña de logs
         frame = ttk.Frame(notebook)
-        notebook.add(frame, text="Logs de Errores")
+        notebook.add(frame, text="Auditoría DTEs")
 
         # Tabla para mostrar los logs
         self.logs_tree = ttk.Treeview(frame, columns=("ISSUER_NAME", "PROCESS", "INVOICE_ID", "VALIDATION_MESSAGE"), show="headings")
@@ -133,7 +133,7 @@ class HookedDocsApp:
         # Verificar si hay errores pendientes
         logs = read_log()
         if logs:
-            messagebox.showwarning("Errores Pendientes", f"Hay {len(logs)} errores pendientes por revisar.")
+            messagebox.showwarning("DTEs con errores", f"Hay {len(logs)} DTEs con errores de lectura, favor revisar la ventana Auditoría DTEs.")
 
     def config_folders(self):
         # Ventana de configuración para seleccionar carpetas
