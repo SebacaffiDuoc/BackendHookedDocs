@@ -82,9 +82,11 @@ def create_physical_tickets(connection, data):
     INSERT INTO physical_tickets (
         folio, neto, iva, total, dte, fecha, rut_vendedor, sucursal
     ) VALUES (
-        :folio, :neto, :iva, :total, :dte, to_date(:fecha, 'YYYYMMDD'), :vendedor, :sucursal
+        :numero_documento, :monto_neto, :monto_impuestos, :monto_total, :codigo_tributario, to_date(:fecha_emision, 'YYYYMMDD'), :vendedor, :sucursal
     )
     """
+    #:folio, :neto, :iva, :total, :dte, to_date(:fecha, 'YYYYMMDD'), :vendedor, :sucursal
+    #:Nº Documento, :Monto Neto Documento, :Monto Impuestos Documento, :Monto Documento, :Código Tributario, to_date(:Fecha Emisión, 'YYYYMMDD'), :Vendedor, :Sucursal
     cursor.executemany(insert_sql, data_to_insert)
     logging.info(f"{cursor.rowcount} registros insertados en physical_tickets.")
     cursor.close()
