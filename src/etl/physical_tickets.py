@@ -37,27 +37,32 @@ def extract(tickets_path):
     return extracted_data
 
 def transform(data):
-    """
-    Transforma el DataFrame, eliminando las filas con valores nulos, convirtiendo los valores a enteros y formateando la columna de fecha.
+    # Renombrar columnas para evitar caracteres especiales
+    column_mapping = {
+        'Nº Documento': 'numero_documento',
+        'Fecha Emisión': 'fecha_emision',
+        'Código Tributario': 'codigo_tributario',
+        'Monto Neto Documento': 'monto_neto',
+        'Monto Impuestos Documento': 'monto_impuestos',
+        'Monto Documento': 'monto_total',
+        'Vendedor': 'vendedor',
+        'Sucursal': 'sucursal'
+    }
+    data.rename(columns=column_mapping, inplace=True)
     
-    Parámetros:
-    - data: DataFrame con los datos extraídos.
+    # Seleccionar solo las columnas requeridas
+    required_columns = list(column_mapping.values())
+    data = data[[col for col in required_columns if col in data.columns]]
 
-    Retorna:
-    - DataFrame transformado con los datos necesarios.
-    """
-    # Eliminar las filas con valores nulos del DF
+    # Eliminar filas con valores nulos
     data.dropna(inplace=True)
 
-    # Convertir todos los valores del DF en enteros
-    data = data.apply(lambda x: x.astype(int) if pd.api.types.is_numeric_dtype(x) else x)
-
-    # Convertir la columna 'fecha' al formato deseado 'yyyy-mm-dd hh-mm-ss'
-    if 'fecha' in data.columns:
-        #data['fecha'] = pd.to_datetime(data['fecha']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        data['fecha'] = pd.to_datetime(data['fecha']).dt.strftime('%Y%m%d')
+    # Convertir la columna 'fecha_emision' al formato deseado
+    if 'fecha_emision' in data.columns:
+        data['fecha_emision'] = pd.to_datetime(data['fecha_emision']).dt.strftime('%Y%m%d')
     
     return data
+
 
 def load(data):
     """
@@ -66,6 +71,7 @@ def load(data):
     Parámetros:
     - data: El DataFrame con los datos procesados de la factura.
     """
+    print (data.head())
     create_physical_tickets(data)
 
 def move_to_processed(file_path, base_path):
