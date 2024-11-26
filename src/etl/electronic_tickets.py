@@ -46,20 +46,44 @@ def transform(data):
     Retorna:
     - DataFrame transformado con los datos necesarios.
     """
-    tarjetas_aceptadas = ['VISA', 'MASTERCARD', 'AMEX', 'AMERICAN EXPRESS', 'DISCOVER']
-
-    data = data[data['TARJETA'].isin(tarjetas_aceptadas)]
-
-    data = data.drop(['impuestos', 'fecha_intercambio', 'estado_intercambio', 'informacion_intercambio', 
-                      'estado_reclamo_mercaderia', 'uri', 'referencias', 'indservicio', 'condicion_pago', 
-                      'tipofactesp', 'rutusuarioemisor', 'fecha_vencimiento', 'fecha_reclamo_mercaderia', 
-                      'estado_reclamo_contenido', 'fecha_reclamo_contenido', 'receptor', 'emisor', 
-                      'informacion_sii'], axis=1, errors='ignore')
     
+    # Renombrar columnas para evitar caracteres especiales
+    column_mapping = {
+        'Código Tributario': 'tipo', 
+        'Nº Documento': 'folio',
+        'Cliente': 'razon_social_receptor',
+        'Fecha de generacion': 'publicacion',
+        'Fecha Emisión': 'fecha_emision',
+        'Monto Neto Documento': 'monto_neto',
+        'Monto Exento Documento': 'monto_exento',
+        'Monto Impuestos Documento': 'monto_impuestos',
+        'Monto Documento': 'monto_total',
+        'Fecha de declaracion': 'fecha_sii',
+        'Informado SII': 'estado_sii',
+        'TARJETA CREDITO' : 'credito',	
+        'TARJETA DEBITO': 'debito',	
+        'TRANSFERENCIA BANCARIA' : 'transferencia',	
+        'WEBPAY' : 'webpay'
+    }
+    data.rename(columns=column_mapping, inplace=True)
+
+    # Seleccionar solo las columnas requeridas
+    required_columns = list(column_mapping.values())
+    data = data[[col for col in required_columns if col in data.columns]]
+
+    # Asignar 'tipo_documento' basado en valores de columnas específicas
+    payment_columns = ['credito', 'debito', 'transferencia', 'webpay']
+
+    # Crear nueva columna 'tipo_documento' donde sea diferente de 0
+    data['tipo_documento'] = data[payment_columns].idxmax(axis=1).where(data[payment_columns].any(axis=1), other=None)
+
     data['publicacion'] = pd.to_datetime(data['publicacion']).dt.strftime('%Y%m%d')
-    data['emision'] = pd.to_datetime(data['emision']).dt.strftime('%Y%m%d')
+    data['fecha_emision'] = pd.to_datetime(data['fecha_emision']).dt.strftime('%Y%m%d')
     data['fecha_sii'] = pd.to_datetime(data['fecha_sii']).dt.strftime('%Y%m%d')
     
+    data = data.drop(['credito', 'debito', 'transferencia', 'webpay'],axis=1,errors='ignore')
+    # Dropear filas donde 'tipo_documento' sea None
+    data = data[pd.notna(data['tipo_documento'])]
     return data
 
 def load(data):

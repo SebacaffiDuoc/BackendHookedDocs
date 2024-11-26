@@ -103,10 +103,18 @@ def create_electronic_tickets(connection, data):
         tipo, tipo_documento, folio, razon_social_receptor, fecha_publicacion,
         emision, monto_neto, monto_exento, monto_iva, monto_total, fecha_sii, estado_sii
     ) VALUES (
-        :tipo, :tipo_documento, :folio, :razon_social_receptor,
-        to_date(:publicacion,'YYYYMMDD'), to_date(:emision,'YYYYMMDD'), 
-        :monto_neto, :monto_exento, :monto_iva, :monto_total, 
-        to_date(:fecha_sii,'YYYYMMDD'), :estado_sii
+        :tipo, 
+        :tipo_documento, 
+        :folio, 
+        :razon_social_receptor,
+        to_date(:publicacion,'YYYYMMDD'), 
+        to_date(:fecha_emision,'YYYYMMDD'), 
+        :monto_neto, 
+        :monto_exento, 
+        :monto_impuestos, 
+        :monto_total, 
+        to_date(:fecha_sii,'YYYYMMDD'), 
+        :estado_sii
     )
     """
     cursor.executemany(insert_sql, data_to_insert)
