@@ -96,7 +96,7 @@ class HookedDocsApp:
     def add_logs_tab(self, notebook):
         # Crear un Frame para la pestaña de logs
         frame = ttk.Frame(notebook)
-        notebook.add(frame, text="Auditoría DTEs")
+        notebook.add(frame, text="Auditoría DTE's")
 
         # Tabla para mostrar los logs
         self.logs_tree = ttk.Treeview(frame, columns=("ISSUER_NAME", "PROCESS", "INVOICE_ID", "VALIDATION_MESSAGE"), show="headings")
@@ -133,7 +133,7 @@ class HookedDocsApp:
         # Verificar si hay errores pendientes
         logs = read_log()
         if logs:
-            messagebox.showwarning("DTEs con errores", f"Hay {len(logs)} DTEs con errores de lectura, favor revisar la ventana Auditoría DTEs.")
+            messagebox.showwarning("DTE's con errores", f"Hay {len(logs)} DTE's con errores de lectura, favor revisar la ventana Auditoría DTE's.")
 
     def config_folders(self):
         # Ventana de configuración para seleccionar carpetas
