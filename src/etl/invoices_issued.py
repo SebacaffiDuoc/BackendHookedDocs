@@ -1,4 +1,6 @@
 import pdfplumber
+import pytesseract
+from PIL import Image
 import re
 import os
 import sys
@@ -14,9 +16,27 @@ from core.crud import *
 
 sys.path.append(global_route)
 
+def extract_text_from_image(image_path):
+    """
+    Extrae texto de una imagen usando OCR.
+    
+    Parámetros:
+    - image_path: Ruta de la imagen.
+
+    Retorna:
+    - Texto extraído de la imagen.
+    """
+    try:
+        image = Image.open(image_path)
+        text = pytesseract.image_to_string(image, lang="spa")  # Idioma configurado como español
+        return text
+    except Exception as e:
+        print(f"Error al procesar la imagen {image_path}: {e}")
+        return None
+
 def extract(path_invoices):
     """
-    Extrae el texto de facturas en formato PDF utilizando pdfplumber.
+    Extrae el texto de facturas en formato PDF o imágenes (PNG, JPG).
     
     Parámetros:
     - path_invoices: Ruta de la carpeta que contiene los archivos de facturas.
@@ -24,30 +44,40 @@ def extract(path_invoices):
     processed_count = 0  # Inicializa el contador
 
     for file in os.listdir(path_invoices):
+        file_path = os.path.join(path_invoices, file)
+        extracted_text = ''
+
         if file.endswith(".pdf"):
-            file_path = os.path.join(path_invoices, file)
+            # Procesar PDF
             try:
-                # Utiliza pdfplumber para extraer el texto del PDF
                 with pdfplumber.open(file_path) as pdf:
-                    extracted_text = ''
                     for page in pdf.pages:
                         page_text = page.extract_text()
                         if page_text:
                             extracted_text += page_text + '\n'
-                
-                # Procesar el archivo PDF
-                data = transform(extracted_text)
+            except Exception as e:
+                print(f"Error al procesar el archivo PDF {file}: {e}")
+
+        elif file.endswith((".png", ".jpg", ".jpeg")):
+            # Procesar imágenes
+            try:
+                extracted_text = extract_text_from_image(file_path)
+            except Exception as e:
+                print(f"Error al procesar la imagen {file}: {e}")
+
+        # Si se obtuvo texto, transformar y cargar
+        if extracted_text:
+            try:
+                data = transform(file_path,extracted_text)
                 load(data)
-                
-                # Mover archivo a la carpeta "PROCESADOS" después de procesarlo
                 move_to_processed(file_path, path_invoices)
-                processed_count += 1  # Incrementa el contador tras mover el archivo
+                processed_count += 1
             except Exception as e:
                 print(f"Error al procesar el archivo {file}: {e}")
 
     return processed_count  # Retorna el número de archivos procesados
 
-def transform(extracted_text):
+def transform(file_path,extracted_text):
     """
     Transforma el texto extraído y extrae los datos estructurados de la factura.
     
@@ -58,7 +88,7 @@ def transform(extracted_text):
     - Un diccionario con los datos estructurados de la factura.
     """
     transformed_text = extracted_text.upper()
-
+    
     # Diccionario de reemplazos para normalizar el texto
     replacements = {
         'Á': 'A', 
@@ -110,6 +140,19 @@ def transform(extracted_text):
         }
     }
 
+    # Determinar la estructura según la extensión del archivo
+    if file_path.endswith(".pdf"):
+        print("Procesando como estructura PDF...")
+        return process_pdf_structure(transformed_text, data)
+    elif file_path.endswith((".jpg", ".jpeg", ".png")):
+        print("Procesando como estructura OCR desde JPG...")
+        return process_jpg_structure(transformed_text, data)
+    else:
+        print("Extensión no reconocida. No se puede procesar.")
+        return None
+
+def process_pdf_structure(transformed_text, data):
+    # Extracción de datos usando expresiones regulares
     # Diccionario para convertir meses en español a números
     months = {
         'ENERO': '01',
@@ -130,8 +173,6 @@ def transform(extracted_text):
     def parse_float(num_str):
         num_str = num_str.replace('.', '').replace(',', '.')
         return float(num_str)
-
-    # Extracción de datos usando expresiones regulares
 
     # Emisor
     # Extracción del RUT y nombre del emisor
@@ -271,10 +312,113 @@ def transform(extracted_text):
         buyer_comuna_match = re.search(r'COMUNA\s*(.*?)\s*CIUDAD:', buyer_section)
         if buyer_comuna_match:
             data['buyer']['commune'] = buyer_comuna_match.group(1).strip()
-
     return data
 
+def process_jpg_structure(transformed_text, data):
+    """
+    Procesa la estructura del texto extraído desde un JPG y completa el JSON esperado.
+    """
+    # Extraer número de factura
+    invoice_number_match = re.search(r'N[ºN]?\s*(\d+)', transformed_text)
+    if invoice_number_match:
+        raw_number = invoice_number_match.group(1)
+        data["invoice_number"] = raw_number[-3:] if 100 <= int(raw_number[-3:]) <= 999 else None
+        data["issuer"]["invoice_number"] = data["invoice_number"]
 
+    # Extraer datos del emisor
+    issuer_name_match = re.search(r'CHRISTIAN JONATHAN POZO\s*OVALLE', transformed_text)
+    if issuer_name_match:
+        data["issuer"]["name"] = "CHRISTIAN JONATHAN POZO OVALLE"
+
+    rut_match = re.search(r'R\.U\.T\.:\s*([\d\.]+-\s*\w)', transformed_text)
+    if rut_match:
+        data["issuer"]["rut"] = rut_match.group(1).replace('.', '').replace(' ', '')
+
+    economic_activity_match = re.search(r'GIRO:\s*(.*?)\n', transformed_text)
+    if economic_activity_match:
+        data["issuer"]["economic_activity"] = economic_activity_match.group(1).strip()
+
+    address_match = re.search(r'BLANCO\s*\d{3,}-\s*VALPARAISO', transformed_text)
+    if address_match:
+        data["issuer"]["address"] = address_match.group(0).strip()
+
+    email_match = re.search(r'EMAIL\s*:\s*(\S+@\S+)', transformed_text)
+    if email_match:
+        data["issuer"]["email"] = email_match.group(1).replace("GMAIL", "GMAIL.COM")
+
+    phone_match = re.search(r'TELEFONO\s*:\s*([\d-]+)', transformed_text)
+    if phone_match:
+        data["issuer"]["phone"] = re.sub(r'\D', '', phone_match.group(1))  # Mantener solo dígitos
+
+    issue_date_match = re.search(r'FECHA EMISION:\s*(\d{1,2}) DE (\w+) DEL (\d{4})', transformed_text)
+    if issue_date_match:
+        day = issue_date_match.group(1).zfill(2)
+        month = issue_date_match.group(2).upper()
+        year = issue_date_match.group(3)
+        months = {
+            'ENERO': '01', 'FEBRERO': '02', 'MARZO': '03', 'ABRIL': '04',
+            'MAYO': '05', 'JUNIO': '06', 'JULIO': '07', 'AGOSTO': '08',
+            'SEPTIEMBRE': '09', 'OCTUBRE': '10', 'NOVIEMBRE': '11', 'DICIEMBRE': '12'
+        }
+        month_num = months.get(month, '00')
+        data["issuer"]["issue_date"] = f"{day}/{month_num}/{year}"
+
+    # Tipo de factura
+    data["issuer"]["invoice_type"] = "FACTURA ELECTRONICA"
+
+    # Extraer datos del comprador
+    buyer_name_match = re.search(r'SEÑOR\(ES\):\s*(.*?)\n', transformed_text)
+    if buyer_name_match:
+        data["buyer"]["name"] = buyer_name_match.group(1).strip()
+
+    buyer_rut_match = re.search(r'R\.U\.T\.\s*:\s*([\d\.]+-\s*\w)', transformed_text)
+    if buyer_rut_match:
+        data["buyer"]["rut"] = buyer_rut_match.group(1).replace('.', '').replace(' ', '')
+
+    buyer_economic_activity_match = re.search(r'GIRO:\s*(.*?)\n', transformed_text)
+    if buyer_economic_activity_match:
+        data["buyer"]["economic_activity"] = buyer_economic_activity_match.group(1).strip()
+
+    buyer_address_match = re.search(r'DIRECCION:\s*(.*?)\n', transformed_text)
+    if buyer_address_match:
+        data["buyer"]["address"] = buyer_address_match.group(1).strip()
+
+    buyer_commune_match = re.search(r'COMUNA\s*—\s*(.*?)\s*CIUDAD:', transformed_text)
+    if buyer_commune_match:
+        data["buyer"]["commune"] = buyer_commune_match.group(1).strip()
+
+    # Extraer items
+    items_match = re.search(r'ARTÍCULOS DE PESCA\s*(\d+)\s*([\d\.,]+)\s*([\d\.,]+)', transformed_text)
+    if items_match:
+        item = {
+            "description": "ARTÍCULOS DE PESCA",
+            "quantity": int(items_match.group(1).replace('.', '').replace(',', '')),
+            "unit_price": int(items_match.group(2).replace('.', '').replace(',', '')),
+            "total_price": int(items_match.group(3).replace('.', '').replace(',', '')),
+        }
+        data["items"].append(item)
+
+    # Extraer subtotal
+    subtotal_match = re.search(r'MONTO NETO\s*\$\s*([\d\.,]+)', transformed_text)
+    if subtotal_match:
+        data["subtotal"] = int(subtotal_match.group(1).replace('.', '').replace(',', ''))
+
+    # Extraer impuesto (IVA)
+    tax_match = re.search(r'I\.V\.A\.\s*19%\s*\$\s*([\d\.,]+)', transformed_text)
+    if tax_match:
+        data["tax"] = int(tax_match.group(1).replace('.', '').replace(',', ''))
+
+    # Extraer total
+    total_match = re.search(r'TOTAL\s*\$\s*([\d\.,]+)', transformed_text)
+    if total_match:
+        data["total"] = int(total_match.group(1).replace('.', '').replace(',', ''))
+
+    # Extraer método de pago
+    payment_method_match = re.search(r'FORMA DE PAGO\s*:\s*(\w+)', transformed_text)
+    if payment_method_match:
+        data["payment_method"] = payment_method_match.group(1).strip().upper()
+
+    return data
 
 def load(data):
     """
@@ -284,8 +428,7 @@ def load(data):
     - data: El diccionario con los datos procesados de la factura.
     """
     create_invoice(data, 'invoices_issued')
-    # Puedes descomentar la siguiente línea si deseas imprimir los datos cargados
-    # print(data)
+    print(data)
 
 def move_to_processed(file_path, path_invoices):
     """
@@ -303,7 +446,7 @@ def move_to_processed(file_path, path_invoices):
 def main(invoices_issued_path):
     """
     Función principal que coordina las etapas de extracción, transformación y carga de datos.
-    Retorna el número de archivos procesados
+    Retorna el número de archivos procesados.
     """
     processed_count = extract(invoices_issued_path)
-    return processed_count  
+    return processed_count

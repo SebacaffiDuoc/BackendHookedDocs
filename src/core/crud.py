@@ -265,6 +265,11 @@ def delete_invoice(connection, functionalitie, invoice_number):
     cursor.execute(delete_query, invoice_number=invoice_number)
     logging.info(f"Registro eliminado en funcionalidad {functionalitie}.")
 
+    insert_sql = "DELETE FROM invoice_audit_log WHERE invoice_ID = :invoice_number"
+    cursor.execute(insert_sql, invoice_number=invoice_number)
+    logging.info(f"{cursor.rowcount} registros insertados en electronic_tickets.")
+  
+
     """Llama a la función FN_LOG_DEPURATION y verifica el resultado."""
     try:
         # Llama a la función y espera un resultado de tipo NUMBER
