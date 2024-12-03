@@ -70,7 +70,6 @@ def transform(extracted_text):
     else:
         raise ValueError("Proveedor no reconocido en el documento.")
 
-
 def remove_accents(input_str):
     """
     Elimina los acentos del texto para facilitar las coincidencias en las expresiones regulares.
@@ -237,7 +236,7 @@ def transform_professional_fishing(text):
         data['tax'] = parse_int(tax_match.group(1))
 
     # Extracción del total
-    total_match = re.search(r'TOTAL:\s*\$\s*([\d.,]+)', text)
+    total_match = re.search(r'IVA \(19%\):.*?\nTOTAL:\s*\$\s*([\d.,]+)', text, re.DOTALL)
     if total_match:
         data['total'] = parse_int(total_match.group(1))
 
@@ -407,6 +406,7 @@ def transform_mi_tienda(text):
         i += 1
 
     return data
+
 def transform_rapala(text):
     """
     Extrae los datos de la factura de RAPALA.
