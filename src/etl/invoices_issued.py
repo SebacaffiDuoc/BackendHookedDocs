@@ -1,5 +1,7 @@
 import pdfplumber
 import pytesseract
+# Especifica la ruta si no está en el PATH global
+pytesseract.pytesseract.tesseract_cmd = r'C:/Program Files/Tesseract-OCR/tesseract.exe'
 from PIL import Image
 import re
 import os

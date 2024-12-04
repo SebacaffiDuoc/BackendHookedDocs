@@ -29,6 +29,7 @@ El objetivo principal de **HookedDocs** es simplificar y automatizar el manejo d
    -`ttkthemes`
    -`cryptography`
    -`plyer`
+   -`pytesseract`
 - Sistema Operativo:
   - Windows (Recomendado para el uso del ejecutable)
 
